@@ -114,8 +114,10 @@ export async function cancelPurchaseOrder(poId: number) {
 }
 
 /**
- * Receive the whole PO: for each line with outstanding quantity, create a
- * batch + inbound movement (via the shared stock engine) and mark it received.
+ * Receive a PO — fully or partially. The form supplies a per-line quantity in
+ * `recv_<itemId>`; each positive quantity (capped at the line's outstanding)
+ * creates a batch + inbound movement via the shared stock engine. The PO
+ * becomes `received` once every line is fully received, otherwise `partial`.
  */
 export async function receivePurchaseOrder(poId: number, formData: FormData) {
   const user = await requireCapability("procurement.manage");
@@ -131,16 +133,23 @@ export async function receivePurchaseOrder(poId: number, formData: FormData) {
   }
 
   const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const seq = String(Date.now()).slice(-4); // keep batch numbers unique across deliveries
   let received = 0;
 
   for (const item of po!.items) {
     const outstanding = item.quantityOrdered - item.quantityReceived;
     if (outstanding <= 0) continue;
 
+    const raw = formData.get(`recv_${item.id}`);
+    // Default to full outstanding when the field is absent (e.g. "Terima Semua").
+    const requested = raw === null ? outstanding : Math.floor(Number(raw) || 0);
+    const qty = Math.max(0, Math.min(requested, outstanding));
+    if (qty <= 0) continue;
+
     await applyInbound({
       productId: item.productId,
-      quantity: outstanding,
-      batchNumber: `PO${po!.id}-${item.product.sku}-${stamp}`,
+      quantity: qty,
+      batchNumber: `PO${po!.id}-${item.product.sku}-${stamp}-${seq}`,
       receivedDate: new Date(),
       supplierId: po!.supplierId ?? null,
       unitCost: item.unitCost,
@@ -153,14 +162,25 @@ export async function receivePurchaseOrder(poId: number, formData: FormData) {
 
     await prisma.purchaseOrderItem.update({
       where: { id: item.id },
-      data: { quantityReceived: item.quantityOrdered },
+      data: { quantityReceived: item.quantityReceived + qty },
     });
-    received += outstanding;
+    received += qty;
   }
+
+  if (received === 0) {
+    redirect(withFlash(`/purchase-orders/${poId}`, "Tidak ada jumlah yang diterima.", "info"));
+  }
+
+  // Recompute completion from fresh item state.
+  const fresh = await prisma.purchaseOrderItem.findMany({ where: { purchaseOrderId: poId } });
+  const fullyReceived = fresh.every((i) => i.quantityReceived >= i.quantityOrdered);
 
   await prisma.purchaseOrder.update({
     where: { id: poId },
-    data: { status: "received", invoiceNumber, orderDate: po!.orderDate },
+    data: {
+      status: fullyReceived ? "received" : "partial",
+      invoiceNumber: invoiceNumber ?? po!.invoiceNumber,
+    },
   });
 
   revalidatePath("/purchase-orders");
@@ -169,5 +189,12 @@ export async function receivePurchaseOrder(poId: number, formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/reorder");
   revalidatePath("/movements");
-  redirect(withFlash(`/purchase-orders/${poId}`, `Pesanan diterima — ${received} unit masuk ke stok.`));
+  redirect(
+    withFlash(
+      `/purchase-orders/${poId}`,
+      fullyReceived
+        ? `Pesanan diterima penuh — ${received} unit masuk ke stok.`
+        : `Diterima sebagian — ${received} unit masuk ke stok.`
+    )
+  );
 }

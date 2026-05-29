@@ -10,10 +10,10 @@ import { markOrdered, cancelPurchaseOrder, receivePurchaseOrder } from "../actio
 export const dynamic = "force-dynamic";
 
 const STATUS_LABEL: Record<string, string> = {
-  draft: "Draft", ordered: "Dipesan", received: "Diterima", cancelled: "Dibatalkan",
+  draft: "Draft", ordered: "Dipesan", partial: "Diterima Sebagian", received: "Diterima", cancelled: "Dibatalkan",
 };
 const STATUS_BADGE: Record<string, string> = {
-  draft: "badge-muted", ordered: "badge-warn", received: "badge-ok", cancelled: "badge-danger",
+  draft: "badge-muted", ordered: "badge-warn", partial: "badge-info", received: "badge-ok", cancelled: "badge-danger",
 };
 
 export default async function PurchaseOrderDetail({
@@ -33,7 +33,12 @@ export default async function PurchaseOrderDetail({
   if (!po) notFound();
 
   const total = po.items.reduce((s, i) => s + i.quantityOrdered * i.unitCost, 0);
-  const canEdit = po.status === "draft" || po.status === "ordered";
+  const canReceive = ["draft", "ordered", "partial"].includes(po.status);
+  const canEdit = canReceive;
+  const outstandingTotal = po.items.reduce(
+    (s, i) => s + Math.max(i.quantityOrdered - i.quantityReceived, 0),
+    0
+  );
 
   return (
     <div className="space-y-6">
@@ -75,29 +80,8 @@ export default async function PurchaseOrderDetail({
         </div>
       </div>
 
-      {/* Receive panel */}
-      {canEdit ? (
-        <form action={receivePurchaseOrder.bind(null, po.id)} className="panel p-4">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <label className="label">No. Faktur / Invoice (opsional)</label>
-              <input name="invoiceNumber" className="input w-64" placeholder="INV-2026-..." />
-            </div>
-            <ConfirmSubmit
-              className="btn"
-              message={`Terima PO #${po.id}? Semua item akan masuk ke stok dan membuat batch baru.`}
-            >
-              Terima Pesanan → Tambah Stok
-            </ConfirmSubmit>
-          </div>
-          <p className="mt-2 text-[12px] text-ink-muted">
-            Menerima pesanan akan membuat batch baru per produk, menambah stok, dan mencatat pergerakan stok masuk.
-          </p>
-        </form>
-      ) : null}
-
-      {/* Items */}
-      <div className="panel overflow-hidden">
+      {/* Items + receive form */}
+      <form action={canReceive ? receivePurchaseOrder.bind(null, po.id) : undefined} className="panel overflow-hidden">
         <div className="panel-header">
           <h2 className="panel-title">Item ({po.items.length})</h2>
           <span className="text-[12.5px] text-ink-muted">Dibuat oleh {po.user.name} · {formatDate(po.createdAt)}</span>
@@ -109,39 +93,80 @@ export default async function PurchaseOrderDetail({
                 <th>SKU / Produk</th>
                 <th className="text-right">Dipesan</th>
                 <th className="text-right">Diterima</th>
+                {canReceive ? <th className="text-right">Sisa</th> : null}
+                {canReceive ? <th className="text-right">Terima Sekarang</th> : null}
                 <th className="text-right">Harga Satuan</th>
                 <th className="text-right">Subtotal</th>
               </tr>
             </thead>
             <tbody>
-              {po.items.map((it) => (
-                <tr key={it.id}>
-                  <td>
-                    <div className="mono text-[12px] font-semibold uppercase text-ink-soft">{it.product.sku}</div>
-                    <Link href={`/products/${it.product.id}`} className="text-[13.5px] font-medium text-ink hover:underline">
-                      {it.product.name}
-                    </Link>
-                  </td>
-                  <td className="text-right mono">{it.quantityOrdered}{it.product.unit}</td>
-                  <td className="text-right mono">
-                    <span className={it.quantityReceived >= it.quantityOrdered ? "text-ok-text" : "text-ink-muted"}>
-                      {it.quantityReceived}{it.product.unit}
-                    </span>
-                  </td>
-                  <td className="text-right mono">{formatCurrency(it.unitCost)}</td>
-                  <td className="text-right mono">{formatCurrency(it.quantityOrdered * it.unitCost)}</td>
-                </tr>
-              ))}
+              {po.items.map((it) => {
+                const outstanding = Math.max(it.quantityOrdered - it.quantityReceived, 0);
+                const done = it.quantityReceived >= it.quantityOrdered;
+                return (
+                  <tr key={it.id}>
+                    <td>
+                      <div className="mono text-[12px] font-semibold uppercase text-ink-soft">{it.product.sku}</div>
+                      <Link href={`/products/${it.product.id}`} className="text-[13.5px] font-medium text-ink hover:underline">
+                        {it.product.name}
+                      </Link>
+                    </td>
+                    <td className="text-right mono">{it.quantityOrdered}{it.product.unit}</td>
+                    <td className="text-right mono">
+                      <span className={done ? "text-ok-text" : "text-ink-muted"}>
+                        {it.quantityReceived}{it.product.unit}
+                      </span>
+                    </td>
+                    {canReceive ? (
+                      <td className="text-right mono text-ink-muted">{outstanding}{it.product.unit}</td>
+                    ) : null}
+                    {canReceive ? (
+                      <td className="text-right">
+                        <input
+                          type="number"
+                          name={`recv_${it.id}`}
+                          min={0}
+                          max={outstanding}
+                          defaultValue={outstanding}
+                          disabled={outstanding === 0}
+                          aria-label={`Jumlah diterima untuk ${it.product.name}`}
+                          className="input w-24 text-right disabled:opacity-50"
+                        />
+                      </td>
+                    ) : null}
+                    <td className="text-right mono">{formatCurrency(it.unitCost)}</td>
+                    <td className="text-right mono">{formatCurrency(it.quantityOrdered * it.unitCost)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={4} className="text-right text-[12px] font-semibold uppercase tracking-widest2 text-ink-muted">Total</td>
+                <td colSpan={canReceive ? 6 : 4} className="text-right text-[12px] font-semibold uppercase tracking-widest2 text-ink-muted">Total</td>
                 <td className="text-right mono text-[15px] font-bold text-ink">{formatCurrency(total)}</td>
               </tr>
             </tfoot>
           </table>
         </div>
-      </div>
+
+        {canReceive ? (
+          <div className="flex flex-wrap items-end justify-between gap-3 border-t border-line bg-canvas/50 p-4">
+            <div>
+              <label className="label">No. Faktur / Invoice (opsional)</label>
+              <input name="invoiceNumber" className="input w-64" placeholder="INV-2026-..." defaultValue={po.invoiceNumber ?? ""} />
+              <p className="mt-1 text-[12px] text-ink-muted">
+                Sesuaikan jumlah “Terima Sekarang” untuk penerimaan sebagian. Sisa {outstandingTotal} unit belum diterima.
+              </p>
+            </div>
+            <ConfirmSubmit
+              className="btn"
+              message={`Terima item PO #${po.id}? Jumlah yang dimasukkan akan masuk ke stok dan membuat batch baru.`}
+            >
+              Terima → Tambah Stok
+            </ConfirmSubmit>
+          </div>
+        ) : null}
+      </form>
 
       {po.notes ? (
         <div className="panel p-4 text-[13px] text-ink-soft">
