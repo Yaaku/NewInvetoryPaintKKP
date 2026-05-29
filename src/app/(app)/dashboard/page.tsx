@@ -1,0 +1,204 @@
+import {
+  AlertTriangle,
+  Archive,
+  Banknote,
+  CalendarX2,
+  Droplets,
+  PackageX,
+} from "lucide-react";
+import { prisma } from "@/lib/db";
+import { formatNumber, NEAR_EXPIRY_DAYS } from "@/lib/utils";
+import KpiCard from "@/components/dashboard/KpiCard";
+import AlertsCard from "@/components/dashboard/AlertsCard";
+import LowStockTable from "@/components/dashboard/LowStockTable";
+import FastMovingCard from "@/components/dashboard/FastMovingCard";
+
+export const dynamic = "force-dynamic";
+
+export default async function DashboardPage() {
+  const now = new Date();
+  const nearExpiryThreshold = new Date();
+  nearExpiryThreshold.setDate(now.getDate() + NEAR_EXPIRY_DAYS);
+
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevMonthEnd = monthStart;
+
+  const [
+    totalActive,
+    products,
+    expiredBatches,
+    nearExpiryBatches,
+    monthMoves,
+    prevMonthMoves,
+  ] = await Promise.all([
+    prisma.product.count({ where: { isActive: true } }),
+    prisma.product.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    prisma.batch.findMany({
+      where: { quantity: { gt: 0 }, expiryDate: { lt: now } },
+      include: { product: { select: { id: true, name: true, unit: true } } },
+      orderBy: { expiryDate: "asc" },
+      take: 6,
+    }),
+    prisma.batch.findMany({
+      where: { quantity: { gt: 0 }, expiryDate: { gte: now, lte: nearExpiryThreshold } },
+      include: { product: { select: { id: true, name: true, unit: true } } },
+      orderBy: { expiryDate: "asc" },
+      take: 6,
+    }),
+    prisma.stockMovement.findMany({
+      where: { type: "OUTBOUND", createdAt: { gte: monthStart } },
+    }),
+    prisma.stockMovement.findMany({
+      where: { type: "OUTBOUND", createdAt: { gte: prevMonthStart, lt: prevMonthEnd } },
+    }),
+  ]);
+
+  const inventoryValue = products.reduce(
+    (s, p) => s + p.currentStock * (p.purchasePrice || 0),
+    0
+  );
+  const lowStock = products.filter((p) => p.currentStock > 0 && p.currentStock <= p.minStock);
+  const outOfStock = products.filter((p) => p.currentStock <= 0);
+  const inStockCount = products.filter((p) => p.currentStock > 0).length;
+  const lowAndOut = [...outOfStock, ...lowStock].slice(0, 6);
+
+  const sumByProduct = (moves: typeof monthMoves) => {
+    const m = new Map<number, number>();
+    for (const x of moves) m.set(x.productId, (m.get(x.productId) ?? 0) + Math.abs(x.quantity));
+    return m;
+  };
+  const cur = sumByProduct(monthMoves);
+  const prev = sumByProduct(prevMonthMoves);
+  const fastIds = [...cur.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  const fastRows = fastIds
+    .map(([pid, qty]) => {
+      const p = products.find((x) => x.id === pid);
+      if (!p) return null;
+      const before = prev.get(pid) ?? 0;
+      const delta = before === 0 ? (qty > 0 ? 1 : 0) : (qty - before) / before;
+      return {
+        productId: p.id,
+        name: p.name,
+        sku: p.sku,
+        unit: p.unit,
+        qty,
+        delta,
+        swatch: swatchFor(p.colorName, p.colorCode, p.paintType),
+      };
+    })
+    .filter((r): r is NonNullable<typeof r> => r !== null);
+
+  const todayLabel = now.toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  return (
+    <div className="space-y-6">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-ink">
+            Ringkasan Dashboard
+          </h1>
+          <p className="mt-1 text-[14px] text-ink-muted">
+            Pantau stok, nilai inventaris, dan peringatan gudang secara real-time.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5">
+          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-ok-solid" />
+          <span className="text-[12px] font-medium text-ink-soft">
+            {todayLabel} · <span className="text-ink-muted">Terakhir diperbarui baru saja</span>
+          </span>
+        </div>
+      </header>
+
+      {/* KPI row */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+        <KpiCard
+          label="Total Produk Aktif"
+          value={formatNumber(totalActive)}
+          icon={Archive}
+          href="/products?status=active"
+        />
+        <KpiCard
+          label="SKU Tersedia"
+          value={formatNumber(inStockCount)}
+          icon={Droplets}
+          hint={`dari ${formatNumber(totalActive)} produk`}
+          href="/products?stock=ok"
+        />
+        <KpiCard
+          label="Nilai Inventaris"
+          value={compactRupiah(inventoryValue)}
+          icon={Banknote}
+          hint="berdasarkan harga beli"
+          href="/reports"
+        />
+        <KpiCard
+          label="Stok Menipis"
+          value={formatNumber(lowStock.length)}
+          icon={AlertTriangle}
+          tone={lowStock.length > 0 ? "warn" : "default"}
+          href="/products?stock=low"
+        />
+        <KpiCard
+          label="Stok Habis"
+          value={formatNumber(outOfStock.length)}
+          icon={PackageX}
+          tone={outOfStock.length > 0 ? "danger" : "default"}
+          href="/products?stock=out"
+        />
+        <KpiCard
+          label="Batch Kedaluwarsa"
+          value={formatNumber(expiredBatches.length)}
+          icon={CalendarX2}
+          tone={expiredBatches.length > 0 ? "danger" : "default"}
+          href="/movements?reason=expired"
+        />
+      </div>
+
+      {/* Main grid (8 / 4) */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+        <div className="space-y-6 xl:col-span-8">
+          <AlertsCard expired={expiredBatches} nearExpiry={nearExpiryBatches} />
+          <LowStockTable items={lowAndOut} />
+        </div>
+        <div className="xl:col-span-4">
+          <FastMovingCard rows={fastRows} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function compactRupiah(n: number) {
+  if (n >= 1e12) return `Rp ${(n / 1e12).toFixed(1).replace(".", ",")} T`;
+  if (n >= 1e9) return `Rp ${(n / 1e9).toFixed(1).replace(".", ",")} M`;
+  if (n >= 1e6) return `Rp ${(n / 1e6).toFixed(1).replace(".", ",")} jt`;
+  if (n >= 1e3) return `Rp ${(n / 1e3).toFixed(0)}rb`;
+  return `Rp ${formatNumber(Math.round(n))}`;
+}
+
+function swatchFor(
+  colorName: string | null,
+  colorCode: string | null,
+  paintType: string | null
+): { color: string; light?: boolean } | null {
+  const key = `${colorName ?? ""} ${colorCode ?? ""}`.toLowerCase();
+  if (paintType === "thinner" || /thinner/.test(key)) return null;
+  if (/white|putih|ivory|cream/.test(key)) return { color: "#ffffff", light: true };
+  if (/black|hitam|jet|lamp/.test(key)) return { color: "#111827" };
+  if (/red|merah|crimson|safety|oxide/.test(key)) return { color: "#ef4444" };
+  if (/yellow|kuning|chrome/.test(key)) return { color: "#f59e0b" };
+  if (/blue|biru|navy|phthalo/.test(key)) return { color: "#3b82f6" };
+  if (/green|hijau|emerald/.test(key)) return { color: "#16a34a" };
+  if (/grey|gray|abu/.test(key)) return { color: "#e5e7eb", light: true };
+  if (/clear|bening|transparent/.test(key)) return { color: "#f9fafb", light: true };
+  if (/brown|coklat/.test(key)) return { color: "#92400e" };
+  if (/orange|jingga/.test(key)) return { color: "#f97316" };
+  return { color: "#f3f4f6", light: true };
+}
