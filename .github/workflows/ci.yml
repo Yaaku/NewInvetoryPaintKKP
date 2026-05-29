@@ -6,41 +6,48 @@ on:
   pull_request:
     branches: [main]
 
-# Cancel superseded runs on the same ref
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Shared env — Prisma needs these present; no real DB connection at CI time.
+env:
+  DATABASE_URL: "file:./dev.db"
+  SESSION_PASSWORD: "ci-placeholder-secret-at-least-32-characters-long!!"
+
 jobs:
-  build:
-    name: Lint, Typecheck & Build
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
-    env:
-      # Prisma needs these present; no real DB connection is made at build time.
-      DATABASE_URL: "file:./dev.db"
-      SESSION_PASSWORD: "ci-placeholder-secret-at-least-32-characters-long!!"
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
+      - run: npm ci
+      - run: npm run lint
 
-      - name: Install dependencies
-        run: npm ci
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
 
-      - name: Generate Prisma client
-        run: npx prisma generate
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Build
-        run: npm run build
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
