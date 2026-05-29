@@ -1,0 +1,36 @@
+name: Stock Digest
+
+on:
+  schedule:
+    # 23:00 UTC daily ≈ 06:00 WIB. Adjust to your timezone as needed.
+    - cron: "0 23 * * *"
+  workflow_dispatch: # allow manual runs from the Actions tab
+
+jobs:
+  send-digest:
+    name: Send stock digest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger digest endpoint
+        env:
+          DIGEST_URL: ${{ secrets.DIGEST_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$DIGEST_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "DIGEST_URL and/or CRON_SECRET secrets are not set — skipping."
+            echo "Set them in repo Settings → Secrets and variables → Actions:"
+            echo "  DIGEST_URL  = https://your-app.example.com/api/cron/digest"
+            echo "  CRON_SECRET = (same value as the app's CRON_SECRET env)"
+            exit 0
+          fi
+          echo "Calling stock digest endpoint…"
+          code=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$DIGEST_URL")
+          echo "HTTP $code"
+          cat /tmp/resp.json || true
+          echo ""
+          if [ "$code" -ge 400 ]; then
+            echo "Digest request failed."
+            exit 1
+          fi
