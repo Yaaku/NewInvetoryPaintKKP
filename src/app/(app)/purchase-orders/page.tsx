@@ -9,12 +9,14 @@ export const dynamic = "force-dynamic";
 const STATUS_LABEL: Record<string, string> = {
   draft: "Draft",
   ordered: "Dipesan",
+  partial: "Diterima Sebagian",
   received: "Diterima",
   cancelled: "Dibatalkan",
 };
 const STATUS_BADGE: Record<string, string> = {
   draft: "badge-muted",
   ordered: "badge-warn",
+  partial: "badge-info",
   received: "badge-ok",
   cancelled: "badge-danger",
 };
