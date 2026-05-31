@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { LogOut, Settings } from "lucide-react";
 import { logoutAction } from "@/app/login/actions";
+import MobileNav from "@/components/MobileNav";
 import SearchBox from "@/components/SearchBox";
-import NotificationBell, { type Notification } from "@/components/NotificationBell";
+import NotificationBell, {
+  type Notification,
+} from "@/components/NotificationBell";
 import { prisma } from "@/lib/db";
 import { NEAR_EXPIRY_DAYS, formatDate } from "@/lib/utils";
 
@@ -19,13 +22,19 @@ async function buildNotifications(): Promise<Notification[]> {
       take: 5,
     }),
     prisma.batch.findMany({
-      where: { quantity: { gt: 0 }, expiryDate: { gte: now, lte: nearThreshold } },
+      where: {
+        quantity: { gt: 0 },
+        expiryDate: { gte: now, lte: nearThreshold },
+      },
       include: { product: { select: { id: true, name: true, unit: true } } },
       orderBy: { expiryDate: "asc" },
       take: 5,
     }),
     prisma.product.findMany({
-      where: { isActive: true, currentStock: { lte: prisma.product.fields.minStock } },
+      where: {
+        isActive: true,
+        currentStock: { lte: prisma.product.fields.minStock },
+      },
       orderBy: { currentStock: "asc" },
       take: 8,
     }),
@@ -65,12 +74,23 @@ async function buildNotifications(): Promise<Notification[]> {
   return notifications;
 }
 
-export default async function Topbar({ userName, email }: { userName: string; email: string }) {
+export default async function Topbar({
+  userName,
+  email,
+  canManageUsers = false,
+  canProcure = false,
+}: {
+  userName: string;
+  email: string;
+  canManageUsers?: boolean;
+  canProcure?: boolean;
+}) {
   const initial = (userName?.trim()?.[0] ?? "A").toUpperCase();
   const notifications = await buildNotifications();
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-line bg-surface/95 px-6 backdrop-blur-sm">
+    <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-line bg-surface/95 px-4 backdrop-blur-sm md:px-6">
+      <MobileNav canManageUsers={canManageUsers} canProcure={canProcure} />
       <SearchBox />
 
       <div className="ml-auto flex items-center gap-1">
@@ -84,7 +104,9 @@ export default async function Topbar({ userName, email }: { userName: string; em
         </Link>
         <div className="mx-2 h-6 w-px bg-line" />
         <div className="hidden text-right md:block">
-          <div className="text-[13px] font-semibold leading-tight text-ink">{userName}</div>
+          <div className="text-[13px] font-semibold leading-tight text-ink">
+            {userName}
+          </div>
           <div className="text-[11px] text-ink-muted">{email}</div>
         </div>
         <div className="ml-2 grid h-9 w-9 place-items-center rounded-full bg-accent text-[13px] font-semibold text-white">

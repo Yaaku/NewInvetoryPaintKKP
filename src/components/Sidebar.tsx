@@ -20,10 +20,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type NavItem = { href: string; label: string; icon: LucideIcon };
-type NavGroup = { label: string; items: NavItem[] };
+export type NavItem = { href: string; label: string; icon: LucideIcon };
+export type NavGroup = { label: string; items: NavItem[] };
 
-const BASE_GROUPS: NavGroup[] = [
+export const BASE_GROUPS: NavGroup[] = [
   {
     label: "Ringkasan",
     items: [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
@@ -49,7 +49,11 @@ const BASE_GROUPS: NavGroup[] = [
     label: "Pengadaan",
     items: [
       { href: "/reorder", label: "Saran Restock", icon: ShoppingCart },
-      { href: "/purchase-orders", label: "Purchase Order", icon: ClipboardList },
+      {
+        href: "/purchase-orders",
+        label: "Purchase Order",
+        icon: ClipboardList,
+      },
     ],
   },
   {
@@ -61,6 +65,32 @@ const BASE_GROUPS: NavGroup[] = [
   },
 ];
 
+export function buildNavGroups({
+  canManageUsers = false,
+  canProcure = false,
+}: {
+  canManageUsers?: boolean;
+  canProcure?: boolean;
+}) {
+  let groups: NavGroup[] = BASE_GROUPS.map((g) =>
+    g.label === "Pengadaan" && !canProcure
+      ? { ...g, items: g.items.filter((i) => i.href !== "/purchase-orders") }
+      : g,
+  );
+
+  if (canManageUsers) {
+    groups = [
+      ...groups,
+      {
+        label: "Administrasi",
+        items: [{ href: "/users", label: "Pengguna", icon: Users }],
+      },
+    ];
+  }
+
+  return groups;
+}
+
 export default function Sidebar({
   canManageUsers = false,
   canProcure = false,
@@ -69,20 +99,7 @@ export default function Sidebar({
   canProcure?: boolean;
 }) {
   const pathname = usePathname();
-
-  // Hide the Purchase Order link from roles without procurement rights.
-  let groups: NavGroup[] = BASE_GROUPS.map((g) =>
-    g.label === "Pengadaan" && !canProcure
-      ? { ...g, items: g.items.filter((i) => i.href !== "/purchase-orders") }
-      : g
-  );
-
-  if (canManageUsers) {
-    groups = [
-      ...groups,
-      { label: "Administrasi", items: [{ href: "/users", label: "Pengguna", icon: Users }] },
-    ];
-  }
+  const groups = buildNavGroups({ canManageUsers, canProcure });
 
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-line bg-surface md:flex md:flex-col">
@@ -108,18 +125,22 @@ export default function Sidebar({
             <div className="nav-group-label">{g.label}</div>
             <ul className="space-y-0.5">
               {g.items.map((n) => {
-                const active = pathname === n.href || pathname.startsWith(n.href + "/");
+                const active =
+                  pathname === n.href || pathname.startsWith(n.href + "/");
                 const Icon = n.icon;
                 return (
                   <li key={n.href} className="relative">
                     <Link
                       href={n.href}
-                      className={cn("nav-item ml-2", active && "nav-item-active")}
+                      className={cn(
+                        "nav-item ml-2",
+                        active && "nav-item-active",
+                      )}
                     >
                       <Icon
                         className={cn(
                           "h-[17px] w-[17px] shrink-0",
-                          active ? "text-accent" : "text-ink-muted"
+                          active ? "text-accent" : "text-ink-muted",
                         )}
                         strokeWidth={active ? 2.25 : 2}
                       />

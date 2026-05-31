@@ -5,9 +5,16 @@ import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import ToastHost from "@/components/ToastHost";
 
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+
+  const canManageUsers = can(user.role, "users.manage");
+  const canProcure = can(user.role, "procurement.manage");
 
   return (
     <div className="flex min-h-screen bg-canvas text-ink">
@@ -17,13 +24,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       >
         Lewati ke konten utama
       </a>
-      <Sidebar
-        canManageUsers={can(user.role, "users.manage")}
-        canProcure={can(user.role, "procurement.manage")}
-      />
+      <Sidebar canManageUsers={canManageUsers} canProcure={canProcure} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar userName={user.name} email={user.email} />
-        <main id="main-content" className="flex-1 px-6 py-6 lg:px-8">{children}</main>
+        <Topbar
+          userName={user.name}
+          email={user.email}
+          canManageUsers={canManageUsers}
+          canProcure={canProcure}
+        />
+        <main
+          id="main-content"
+          className="flex-1 px-4 py-5 sm:px-6 lg:px-8 lg:py-6"
+        >
+          {children}
+        </main>
       </div>
       <ToastHost />
     </div>

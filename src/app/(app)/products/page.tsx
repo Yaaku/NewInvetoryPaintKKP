@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Download } from "lucide-react";
+import { ArrowDownToLine, Download, Eye } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { buildProductWhere } from "@/lib/product-filters";
@@ -23,14 +23,25 @@ const PAGE_SIZE = 25;
 
 function exportQuery(sp: Record<string, string | undefined>): string {
   const params = new URLSearchParams();
-  for (const key of ["q", "category", "brand", "supplier", "stock", "status"] as const) {
+  for (const key of [
+    "q",
+    "category",
+    "brand",
+    "supplier",
+    "stock",
+    "status",
+  ] as const) {
     if (sp[key]) params.set(key, sp[key]!);
   }
   const s = params.toString();
   return s ? `?${s}` : "";
 }
 
-export default async function ProductsPage({ searchParams }: { searchParams: SP }) {
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: SP;
+}) {
   const sp = await searchParams;
   const page = Math.max(1, Number(sp.page) || 1);
   const where = buildProductWhere(sp);
@@ -54,7 +65,10 @@ export default async function ProductsPage({ searchParams }: { searchParams: SP 
       distinct: ["brand"],
       select: { brand: true },
     }),
-    prisma.supplier.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    prisma.supplier.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -63,7 +77,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: SP 
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-headline-lg font-sans">Produk</h1>
           <p className="text-body-sm font-sans text-on-surface-variant">
@@ -77,10 +91,12 @@ export default async function ProductsPage({ searchParams }: { searchParams: SP 
             className="btn-secondary"
             prefetch={false}
           >
-            <Download className="h-4 w-4" /> Export CSV
+            <Download className="h-4 w-4" /> Ekspor CSV
           </Link>
           {canManage ? (
-            <Link href="/products/new" className="btn">+ Produk Baru</Link>
+            <Link href="/products/new" className="btn">
+              + Produk Baru
+            </Link>
           ) : null}
         </div>
       </div>
@@ -93,38 +109,77 @@ export default async function ProductsPage({ searchParams }: { searchParams: SP 
           aria-label="Cari produk"
           className="input md:col-span-2"
         />
-        <select name="category" defaultValue={sp.category ?? ""} className="input" aria-label="Filter kategori">
+        <select
+          name="category"
+          defaultValue={sp.category ?? ""}
+          className="input"
+          aria-label="Filter kategori"
+        >
           <option value="">Semua kategori</option>
-          {categories.filter((c) => c.category).map((c) => (
-            <option key={c.category!} value={c.category!}>{c.category}</option>
-          ))}
+          {categories
+            .filter((c) => c.category)
+            .map((c) => (
+              <option key={c.category!} value={c.category!}>
+                {c.category}
+              </option>
+            ))}
         </select>
-        <select name="brand" defaultValue={sp.brand ?? ""} className="input" aria-label="Filter brand">
+        <select
+          name="brand"
+          defaultValue={sp.brand ?? ""}
+          className="input"
+          aria-label="Filter brand"
+        >
           <option value="">Semua brand</option>
-          {brands.filter((b) => b.brand).map((b) => (
-            <option key={b.brand!} value={b.brand!}>{b.brand}</option>
-          ))}
+          {brands
+            .filter((b) => b.brand)
+            .map((b) => (
+              <option key={b.brand!} value={b.brand!}>
+                {b.brand}
+              </option>
+            ))}
         </select>
-        <select name="supplier" defaultValue={sp.supplier ?? ""} className="input" aria-label="Filter supplier">
+        <select
+          name="supplier"
+          defaultValue={sp.supplier ?? ""}
+          className="input"
+          aria-label="Filter supplier"
+        >
           <option value="">Semua supplier</option>
           {suppliers.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
           ))}
         </select>
-        <select name="stock" defaultValue={sp.stock ?? ""} className="input" aria-label="Filter status stok">
+        <select
+          name="stock"
+          defaultValue={sp.stock ?? ""}
+          className="input"
+          aria-label="Filter status stok"
+        >
           <option value="">Semua stok</option>
           <option value="ok">Tersedia</option>
           <option value="low">Menipis</option>
           <option value="out">Habis</option>
         </select>
-        <select name="status" defaultValue={sp.status ?? ""} className="input md:col-span-1" aria-label="Filter status produk">
+        <select
+          name="status"
+          defaultValue={sp.status ?? ""}
+          className="input md:col-span-1"
+          aria-label="Filter status produk"
+        >
           <option value="">Semua status</option>
           <option value="active">Aktif</option>
           <option value="inactive">Nonaktif</option>
         </select>
         <div className="md:col-span-6 flex justify-end gap-2">
-          <Link href="/products" className="btn-secondary">Reset</Link>
-          <button type="submit" className="btn">Terapkan</button>
+          <Link href="/products" className="btn-secondary">
+            Reset
+          </Link>
+          <button type="submit" className="btn">
+            Terapkan
+          </button>
         </div>
       </form>
 
@@ -141,6 +196,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: SP 
               <th className="text-right">Stok / Min</th>
               <th className="text-right">Harga</th>
               <th>Status</th>
+              <th className="text-right">Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -151,7 +207,10 @@ export default async function ProductsPage({ searchParams }: { searchParams: SP 
                 <tr key={p.id}>
                   <td className="font-mono text-xs">{p.sku}</td>
                   <td>
-                    <Link href={`/products/${p.id}`} className="font-medium hover:underline">
+                    <Link
+                      href={`/products/${p.id}`}
+                      className="font-medium hover:underline"
+                    >
                       {p.name}
                     </Link>
                     <div className="text-[10px] uppercase tracking-widest text-ink-soft/60">
@@ -160,15 +219,31 @@ export default async function ProductsPage({ searchParams }: { searchParams: SP 
                   </td>
                   <td>{p.brand ?? "—"}</td>
                   <td>
-                    <div>{p.colorName ?? "—"}</div>
-                    <div className="text-[10px] text-ink-soft/60">{p.colorCode ?? ""}</div>
+                    <div className="flex items-center gap-2">
+                      <ColorSwatch
+                        colorName={p.colorName}
+                        colorCode={p.colorCode}
+                        paintType={p.paintType}
+                      />
+                      <div className="min-w-0">
+                        <div>{p.colorName ?? "—"}</div>
+                        <div className="text-[10px] text-ink-soft/60">
+                          {p.colorCode ?? ""}
+                        </div>
+                      </div>
+                    </div>
                   </td>
                   <td>{p.packageSize ?? "—"}</td>
                   <td>{p.rackLocation ?? "—"}</td>
-                  <td className="text-right font-mono">
-                    {p.currentStock} / {p.minStock} {p.unit}
+                  <td className="min-w-36 text-right">
+                    <div className="font-mono">
+                      {p.currentStock} / {p.minStock} {p.unit}
+                    </div>
+                    <StockMeter current={p.currentStock} min={p.minStock} />
                   </td>
-                  <td className="text-right font-mono">{formatCurrency(p.sellingPrice)}</td>
+                  <td className="text-right font-mono">
+                    {formatCurrency(p.sellingPrice)}
+                  </td>
                   <td>
                     {!p.isActive ? (
                       <span className="badge badge-muted">Nonaktif</span>
@@ -180,12 +255,33 @@ export default async function ProductsPage({ searchParams }: { searchParams: SP 
                       <span className="badge badge-ok">Tersedia</span>
                     )}
                   </td>
+                  <td>
+                    <div className="flex justify-end gap-1.5">
+                      <Link
+                        href={`/products/${p.id}`}
+                        className="btn-ghost"
+                        aria-label={`Lihat ${p.name}`}
+                      >
+                        <Eye className="h-3.5 w-3.5" /> Detail
+                      </Link>
+                      <Link
+                        href={`/stock-in?productId=${p.id}`}
+                        className="btn-ghost"
+                        aria-label={`Tambah stok ${p.name}`}
+                      >
+                        <ArrowDownToLine className="h-3.5 w-3.5" /> Stok
+                      </Link>
+                    </div>
+                  </td>
                 </tr>
               );
             })}
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={9} className="py-10 text-center text-xs text-ink-soft/50">
+                <td
+                  colSpan={10}
+                  className="py-10 text-center text-xs text-ink-soft/50"
+                >
                   Tidak ada produk yang cocok dengan filter.
                 </td>
               </tr>
@@ -206,6 +302,73 @@ export default async function ProductsPage({ searchParams }: { searchParams: SP 
   );
 }
 
+function StockMeter({ current, min }: { current: number; min: number }) {
+  const pct =
+    min <= 0 ? 100 : Math.max(0, Math.min(100, (current / min) * 100));
+  const tone =
+    current <= 0
+      ? "bg-danger-solid"
+      : current <= min
+        ? "bg-warn-solid"
+        : "bg-ok-solid";
+
+  return (
+    <div className="ml-auto mt-1 h-1.5 w-24 overflow-hidden rounded-full bg-line">
+      <div
+        className={`h-full rounded-full ${tone}`}
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+  );
+}
+
+function ColorSwatch({
+  colorName,
+  colorCode,
+  paintType,
+}: {
+  colorName: string | null;
+  colorCode: string | null;
+  paintType: string | null;
+}) {
+  const swatch = swatchFor(colorName, colorCode, paintType);
+  if (!swatch)
+    return (
+      <span className="h-5 w-5 shrink-0 rounded-full border border-dashed border-line bg-canvas" />
+    );
+
+  return (
+    <span
+      className="h-5 w-5 shrink-0 rounded-full border border-line shadow-sm"
+      style={{ backgroundColor: swatch.color }}
+      aria-label={colorName ?? colorCode ?? "Warna produk"}
+      title={colorName ?? colorCode ?? "Warna produk"}
+    />
+  );
+}
+
+function swatchFor(
+  colorName: string | null,
+  colorCode: string | null,
+  paintType: string | null,
+): { color: string } | null {
+  const key = `${colorName ?? ""} ${colorCode ?? ""}`.toLowerCase();
+  if (paintType === "thinner" || /thinner/.test(key)) return null;
+  if (/white|putih|ivory|cream/.test(key)) return { color: "#ffffff" };
+  if (/black|hitam|jet|lamp/.test(key)) return { color: "#111827" };
+  if (/red|merah|crimson|safety|oxide/.test(key)) return { color: "#ef4444" };
+  if (/yellow|kuning|chrome/.test(key)) return { color: "#f59e0b" };
+  if (/blue|biru|navy|phthalo/.test(key)) return { color: "#3b82f6" };
+  if (/green|hijau|emerald/.test(key)) return { color: "#16a34a" };
+  if (/grey|gray|abu/.test(key)) return { color: "#e5e7eb" };
+  if (/clear|bening|transparent/.test(key)) return { color: "#f9fafb" };
+  if (/brown|coklat/.test(key)) return { color: "#92400e" };
+  if (/orange|jingga/.test(key)) return { color: "#f97316" };
+  return { color: "#f3f4f6" };
+}
+
 function hasActiveFilter(sp: Record<string, string | undefined>): boolean {
-  return Boolean(sp.q || sp.category || sp.brand || sp.supplier || sp.stock || sp.status);
+  return Boolean(
+    sp.q || sp.category || sp.brand || sp.supplier || sp.stock || sp.status,
+  );
 }
