@@ -38,9 +38,9 @@ export default function SearchBox() {
         onChange={(e) => setQ(e.target.value)}
         placeholder="Cari produk, SKU, batch…"
         aria-label="Cari inventaris"
-        className="h-9 w-full rounded-md border border-line bg-canvas pl-9 pr-12 text-[13.5px] text-ink outline-none transition placeholder:text-ink-subtle focus:border-accent focus:bg-white focus:ring-2 focus:ring-accent/15"
+        className="h-9 w-full rounded-md border border-line bg-canvas pl-9 pr-12 text-[13.5px] text-ink outline-none transition placeholder:text-ink-subtle focus:border-accent focus:bg-surface focus:ring-2 focus:ring-accent/15"
       />
-      <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 select-none rounded border border-line bg-white px-1.5 py-0.5 text-[10.5px] font-semibold text-ink-muted md:inline-block">
+      <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 select-none rounded border border-line bg-surface px-1.5 py-0.5 text-[10.5px] font-semibold text-ink-muted md:inline-block">
         ⌘K
       </kbd>
     </form>

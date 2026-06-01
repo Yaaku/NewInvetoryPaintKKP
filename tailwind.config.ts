@@ -1,6 +1,12 @@
 import type { Config } from "tailwindcss";
 
+// Every semantic color is backed by a CSS variable holding "R G B" channels,
+// so opacity modifiers (e.g. bg-surface/95) keep working and the whole palette
+// can flip under the `.dark` class (see globals.css :root / .dark).
+const v = (name: string) => `rgb(var(--${name}) / <alpha-value>)`;
+
 export default {
+  darkMode: "class",
   content: ["./src/**/*.{ts,tsx,js,jsx,mdx}"],
   theme: {
     extend: {
@@ -50,93 +56,91 @@ export default {
         widest2: "0.06em",
       },
       colors: {
-        // === Enterprise palette ===
-        canvas: "#f8fafc",          // app bg (slate-50)
-        surface: "#ffffff",          // cards
-        line: "#e5e7eb",             // gray-200
-        "line-strong": "#d1d5db",    // gray-300
-        // Text
+        // === Enterprise palette (CSS-variable backed; flips in dark mode) ===
+        canvas: v("canvas"),
+        surface: v("surface"),
+        line: v("line"),
+        "line-strong": v("line-strong"),
         ink: {
-          DEFAULT: "#111827",       // gray-900
-          soft: "#374151",          // gray-700
-          muted: "#6b7280",         // gray-500
-          subtle: "#9ca3af",        // gray-400
-          faint: "#d1d5db",
+          DEFAULT: v("ink"),
+          soft: v("ink-soft"),
+          muted: v("ink-muted"),
+          subtle: v("ink-subtle"),
+          faint: v("ink-faint"),
         },
-        // Indigo accent
         accent: {
-          DEFAULT: "#4f46e5",       // indigo-600
-          hover: "#4338ca",
-          soft: "#eef2ff",          // indigo-50
-          softer: "#f5f7ff",
-          border: "#c7d2fe",        // indigo-200
-          text: "#3730a3",          // indigo-800
+          DEFAULT: v("accent"),
+          hover: v("accent-hover"),
+          soft: v("accent-soft"),
+          softer: v("accent-softer"),
+          border: v("accent-border"),
+          text: v("accent-text"),
         },
-        // Status
         warn: {
-          bg: "#fffbeb",            // amber-50
-          softer: "#fef3c7",        // amber-100
-          border: "#fde68a",        // amber-200
-          text: "#92400e",          // amber-800
-          textStrong: "#78350f",
-          solid: "#f59e0b",         // amber-500
+          bg: v("warn-bg"),
+          softer: v("warn-softer"),
+          border: v("warn-border"),
+          text: v("warn-text"),
+          textStrong: v("warn-text-strong"),
+          solid: v("warn-solid"),
         },
         danger: {
-          bg: "#fef2f2",            // red-50
-          softer: "#fee2e2",        // red-100
-          border: "#fecaca",        // red-200
-          text: "#991b1b",          // red-800
-          textStrong: "#7f1d1d",
-          solid: "#ef4444",         // red-500
+          bg: v("danger-bg"),
+          softer: v("danger-softer"),
+          border: v("danger-border"),
+          text: v("danger-text"),
+          textStrong: v("danger-text-strong"),
+          solid: v("danger-solid"),
         },
         ok: {
-          bg: "#f0fdf4",            // green-50
-          border: "#bbf7d0",        // green-200
-          text: "#166534",          // green-800
-          solid: "#16a34a",         // green-600
+          bg: v("ok-bg"),
+          border: v("ok-border"),
+          text: v("ok-text"),
+          solid: v("ok-solid"),
         },
 
-        // === Backwards-compat aliases (old pages still compile) ===
-        background: "#f8fafc",
-        "on-background": "#111827",
-        "on-surface": "#111827",
-        "on-surface-variant": "#6b7280",
-        outline: "#9ca3af",
-        "outline-variant": "#e5e7eb",
-        "surface-bright": "#ffffff",
-        "surface-dim": "#f1f5f9",
-        "surface-container-lowest": "#ffffff",
-        "surface-container-low": "#f8fafc",
-        "surface-container": "#f1f5f9",
-        "surface-container-high": "#e2e8f0",
-        "surface-container-highest": "#cbd5e1",
-        "surface-variant": "#f1f5f9",
-        primary: "#111827",
-        "on-primary": "#ffffff",
-        "primary-container": "#4f46e5",
-        "on-primary-container": "#ffffff",
-        secondary: "#4f46e5",
-        "secondary-container": "#eef2ff",
-        "on-secondary-container": "#3730a3",
-        error: "#ef4444",
-        "on-error": "#ffffff",
-        "error-container": "#fef2f2",
-        "on-error-container": "#991b1b",
-        "warning-bg": "#fffbeb",
-        "warning-border": "#fde68a",
-        "warning-text": "#92400e",
-        "warning-text-strong": "#78350f",
-        "tertiary-on": "#92400e",
-        "success-text": "#16a34a",
+        // === Backwards-compat aliases (map to the same variables) ===
+        background: v("canvas"),
+        "on-background": v("ink"),
+        "on-surface": v("ink"),
+        "on-surface-variant": v("ink-muted"),
+        outline: v("ink-subtle"),
+        "outline-variant": v("line"),
+        "surface-bright": v("surface"),
+        "surface-dim": v("surface-dim"),
+        "surface-container-lowest": v("surface"),
+        "surface-container-low": v("canvas"),
+        "surface-container": v("surface-container"),
+        "surface-container-high": v("surface-container-high"),
+        "surface-container-highest": v("surface-container-highest"),
+        "surface-variant": v("surface-container"),
+        primary: v("ink"),
+        "on-primary": v("white"),
+        "primary-container": v("accent"),
+        "on-primary-container": v("white"),
+        secondary: v("accent"),
+        "secondary-container": v("accent-soft"),
+        "on-secondary-container": v("accent-text"),
+        error: v("danger-solid"),
+        "on-error": v("white"),
+        "error-container": v("danger-bg"),
+        "on-error-container": v("danger-text"),
+        "warning-bg": v("warn-bg"),
+        "warning-border": v("warn-border"),
+        "warning-text": v("warn-text"),
+        "warning-text-strong": v("warn-text-strong"),
+        "tertiary-on": v("warn-text"),
+        "success-text": v("ok-solid"),
 
-        card: "#ffffff",
-        paper: { DEFAULT: "#f8fafc", card: "#ffffff" },
+        card: v("surface"),
+        paper: { DEFAULT: v("canvas"), card: v("surface") },
         nav: {
-          activeBg: "#eef2ff",
-          activeText: "#111827",
-          activeBar: "#4f46e5",
-          hover: "#f1f5f9",
+          activeBg: v("accent-soft"),
+          activeText: v("ink"),
+          activeBar: v("accent"),
+          hover: v("surface-container"),
         },
+        white: v("white"),
       },
     },
   },
