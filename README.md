@@ -102,6 +102,32 @@ Capabilities are enforced on both the server (every mutating action) and the UI.
 | Admin Gudang | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Pemilik | ✅ | ✅ | ✅ | ✅ | ✅ |
 
+## Stock Digest (low-stock / expiry email)
+
+A daily email summarising out-of-stock, low-stock, expired, and near-expiry items.
+
+- **Endpoint:** `GET|POST /api/cron/digest`, guarded by `CRON_SECRET`
+  (`Authorization: Bearer <secret>` or `?key=<secret>`).
+  - `?dry=1` builds and returns the digest **without sending** (great for testing).
+  - `?force=1` sends even when there is nothing to report.
+- **Email provider:** [Resend](https://resend.com) via its HTTP API. Set
+  `RESEND_API_KEY`, `DIGEST_FROM`, `DIGEST_TO`. Without these, it safely runs as a
+  dry-run preview (never errors).
+- **Local / self-hosted:** `npm run digest` (add `-- --dry` to preview). Schedule
+  it with cron or Windows Task Scheduler.
+- **GitHub Actions:** [`.github/workflows/digest.yml`](.github/workflows/digest.yml)
+  runs daily (and on manual dispatch) and calls your deployed endpoint. Add two repo
+  secrets — `DIGEST_URL` (e.g. `https://your-app/api/cron/digest`) and `CRON_SECRET`.
+  If they're unset the job skips gracefully.
+
+```bash
+# Preview the digest locally (no email sent)
+npm run digest -- --dry
+
+# Hit the endpoint (replace the secret)
+curl -H "Authorization: Bearer $CRON_SECRET" "http://localhost:3000/api/cron/digest?dry=1"
+```
+
 ## Project Layout
 
 ```
@@ -113,6 +139,7 @@ src/
       reorder/  purchase-orders/        # procurement
       movements/  reports/  users/  settings/
     api/export/       # CSV export routes
+    api/cron/digest/  # scheduled stock digest endpoint
     login/
   components/         # Sidebar, Topbar, dashboard cards, Pagination, etc.
   lib/
@@ -121,7 +148,11 @@ src/
     rbac.ts           # roles + capabilities
     session.ts        # iron-session helpers
     stock.ts          # atomic inbound/outbound/adjustment engine
+    digest.ts         # stock digest builder (html/text)
+    email.ts          # Resend email sender (graceful no-op)
     product-filters.ts  utils.ts  csv.ts
+scripts/
+  send-digest.ts      # CLI digest runner (npm run digest)
 prisma/
   schema.prisma       # data model
   seed.ts
