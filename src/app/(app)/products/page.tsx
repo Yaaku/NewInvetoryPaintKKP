@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Download } from "lucide-react";
+import { ArrowDownToLine, Download, Eye } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { buildProductWhere } from "@/lib/product-filters";
@@ -77,7 +77,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: SP 
             className="btn-secondary"
             prefetch={false}
           >
-            <Download className="h-4 w-4" /> Export CSV
+            <Download className="h-4 w-4" /> Ekspor CSV
           </Link>
           {canManage ? (
             <Link href="/products/new" className="btn">+ Produk Baru</Link>
@@ -141,6 +141,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: SP 
               <th className="text-right">Stok / Min</th>
               <th className="text-right">Harga</th>
               <th>Status</th>
+              <th className="text-right">Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -160,13 +161,25 @@ export default async function ProductsPage({ searchParams }: { searchParams: SP 
                   </td>
                   <td>{p.brand ?? "—"}</td>
                   <td>
-                    <div>{p.colorName ?? "—"}</div>
-                    <div className="text-[10px] text-ink-soft/60">{p.colorCode ?? ""}</div>
+                    <div className="flex items-center gap-2">
+                      <ColorSwatch
+                        colorName={p.colorName}
+                        colorCode={p.colorCode}
+                        paintType={p.paintType}
+                      />
+                      <div className="min-w-0">
+                        <div>{p.colorName ?? "—"}</div>
+                        <div className="text-[10px] text-ink-soft/60">{p.colorCode ?? ""}</div>
+                      </div>
+                    </div>
                   </td>
                   <td>{p.packageSize ?? "—"}</td>
                   <td>{p.rackLocation ?? "—"}</td>
                   <td className="text-right font-mono">
-                    {p.currentStock} / {p.minStock} {p.unit}
+                    <div>
+                      {p.currentStock} / {p.minStock} {p.unit}
+                    </div>
+                    <StockMeter current={p.currentStock} min={p.minStock} />
                   </td>
                   <td className="text-right font-mono">{formatCurrency(p.sellingPrice)}</td>
                   <td>
@@ -180,12 +193,30 @@ export default async function ProductsPage({ searchParams }: { searchParams: SP 
                       <span className="badge badge-ok">Tersedia</span>
                     )}
                   </td>
+                  <td>
+                    <div className="flex justify-end gap-1.5">
+                      <Link
+                        href={`/products/${p.id}`}
+                        className="btn-ghost"
+                        aria-label={`Lihat ${p.name}`}
+                      >
+                        <Eye className="h-3.5 w-3.5" /> Detail
+                      </Link>
+                      <Link
+                        href={`/stock-in?productId=${p.id}`}
+                        className="btn-ghost"
+                        aria-label={`Tambah stok ${p.name}`}
+                      >
+                        <ArrowDownToLine className="h-3.5 w-3.5" /> Stok
+                      </Link>
+                    </div>
+                  </td>
                 </tr>
               );
             })}
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={9} className="py-10 text-center text-xs text-ink-soft/50">
+                <td colSpan={10} className="py-10 text-center text-xs text-ink-soft/50">
                   Tidak ada produk yang cocok dengan filter.
                 </td>
               </tr>
@@ -204,6 +235,65 @@ export default async function ProductsPage({ searchParams }: { searchParams: SP 
       />
     </div>
   );
+}
+
+function StockMeter({ current, min }: { current: number; min: number }) {
+  const pct = min <= 0 ? 100 : Math.max(0, Math.min(100, (current / min) * 100));
+  const tone =
+    current <= 0 ? "bg-danger-solid" : current <= min ? "bg-warn-solid" : "bg-ok-solid";
+
+  return (
+    <div className="ml-auto mt-1 h-1.5 w-24 overflow-hidden rounded-full bg-line">
+      <div className={`h-full rounded-full ${tone}`} style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+
+function ColorSwatch({
+  colorName,
+  colorCode,
+  paintType,
+}: {
+  colorName: string | null;
+  colorCode: string | null;
+  paintType: string | null;
+}) {
+  const swatch = swatchFor(colorName, colorCode, paintType);
+  if (!swatch)
+    return (
+      <span className="h-5 w-5 shrink-0 rounded-full border border-dashed border-line bg-canvas" />
+    );
+
+  return (
+    <span
+      className="h-5 w-5 shrink-0 rounded-full border border-line shadow-sm"
+      style={{ backgroundColor: swatch.color }}
+      aria-label={colorName ?? colorCode ?? "Warna produk"}
+      title={colorName ?? colorCode ?? "Warna produk"}
+    />
+  );
+}
+
+// Best-effort visual swatch from the product's color name/code. These are real
+// paint colors (not theme tokens), so literal hex values are intentional here.
+function swatchFor(
+  colorName: string | null,
+  colorCode: string | null,
+  paintType: string | null
+): { color: string } | null {
+  const key = `${colorName ?? ""} ${colorCode ?? ""}`.toLowerCase();
+  if (paintType === "thinner" || /thinner/.test(key)) return null;
+  if (/white|putih|ivory|cream/.test(key)) return { color: "#ffffff" };
+  if (/black|hitam|jet|lamp/.test(key)) return { color: "#111827" };
+  if (/red|merah|crimson|safety|oxide/.test(key)) return { color: "#ef4444" };
+  if (/yellow|kuning|chrome/.test(key)) return { color: "#f59e0b" };
+  if (/blue|biru|navy|phthalo/.test(key)) return { color: "#3b82f6" };
+  if (/green|hijau|emerald/.test(key)) return { color: "#16a34a" };
+  if (/grey|gray|abu/.test(key)) return { color: "#e5e7eb" };
+  if (/clear|bening|transparent/.test(key)) return { color: "#f9fafb" };
+  if (/brown|coklat/.test(key)) return { color: "#92400e" };
+  if (/orange|jingga/.test(key)) return { color: "#f97316" };
+  return { color: "#f3f4f6" };
 }
 
 function hasActiveFilter(sp: Record<string, string | undefined>): boolean {

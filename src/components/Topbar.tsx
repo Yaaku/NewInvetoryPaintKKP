@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LogOut, Settings } from "lucide-react";
 import { logoutAction } from "@/app/login/actions";
+import MobileNav from "@/components/MobileNav";
 import SearchBox from "@/components/SearchBox";
 import NotificationBell, { type Notification } from "@/components/NotificationBell";
 import { prisma } from "@/lib/db";
@@ -65,12 +66,23 @@ async function buildNotifications(): Promise<Notification[]> {
   return notifications;
 }
 
-export default async function Topbar({ userName, email }: { userName: string; email: string }) {
+export default async function Topbar({
+  userName,
+  email,
+  canManageUsers = false,
+  canProcure = false,
+}: {
+  userName: string;
+  email: string;
+  canManageUsers?: boolean;
+  canProcure?: boolean;
+}) {
   const initial = (userName?.trim()?.[0] ?? "A").toUpperCase();
   const notifications = await buildNotifications();
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-line bg-surface/95 px-6 backdrop-blur-sm">
+    <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-line bg-surface/95 px-4 backdrop-blur-sm md:px-6">
+      <MobileNav canManageUsers={canManageUsers} canProcure={canProcure} />
       <SearchBox />
 
       <div className="ml-auto flex items-center gap-1">
