@@ -12,6 +12,9 @@ import KpiCard from "@/components/dashboard/KpiCard";
 import AlertsCard from "@/components/dashboard/AlertsCard";
 import LowStockTable from "@/components/dashboard/LowStockTable";
 import FastMovingCard from "@/components/dashboard/FastMovingCard";
+import RecentActivityCard, {
+  type ActivityItem,
+} from "@/components/dashboard/RecentActivityCard";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +34,8 @@ export default async function DashboardPage() {
     nearExpiryBatches,
     monthMoves,
     prevMonthMoves,
+    recentMovements,
+    recentPOs,
   ] = await Promise.all([
     prisma.product.count({ where: { isActive: true } }),
     prisma.product.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
@@ -42,7 +47,8 @@ export default async function DashboardPage() {
     }),
     prisma.batch.findMany({
       where: { quantity: { gt: 0 }, expiryDate: { gte: now, lte: nearExpiryThreshold } },
-      include: { product: { select: { id: true, name: true, unit: true } } },
+      include: { product: { select: { id: true, name: true, unit: true } },
+                 supplier: { select: { id: true, name: true } } },
       orderBy: { expiryDate: "asc" },
       take: 6,
     }),
@@ -51,6 +57,24 @@ export default async function DashboardPage() {
     }),
     prisma.stockMovement.findMany({
       where: { type: "OUTBOUND", createdAt: { gte: prevMonthStart, lt: prevMonthEnd } },
+    }),
+    prisma.stockMovement.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 7,
+      include: {
+        product: { select: { id: true, name: true, unit: true } },
+        batch: { select: { batchNumber: true } },
+        user: { select: { name: true } },
+      },
+    }),
+    prisma.purchaseOrder.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 3,
+      include: {
+        supplier: { select: { name: true } },
+        user: { select: { name: true } },
+        _count: { select: { items: true } },
+      },
     }),
   ]);
 
@@ -90,6 +114,49 @@ export default async function DashboardPage() {
     })
     .filter((r): r is NonNullable<typeof r> => r !== null);
 
+  // KPI trend signals
+  const curOutboundTotal = monthMoves.reduce((s, x) => s + Math.abs(x.quantity), 0);
+  const prevOutboundTotal = prevMonthMoves.reduce((s, x) => s + Math.abs(x.quantity), 0);
+  const outboundDelta =
+    prevOutboundTotal === 0
+      ? curOutboundTotal > 0
+        ? 1
+        : 0
+      : (curOutboundTotal - prevOutboundTotal) / prevOutboundTotal;
+
+  // Inventory value snapshot from last month: we approximate by re-summing each product's
+  // outbound-from-this-month delta. Without a stock history table we use outbound velocity
+  // as a proxy: prevValue = currentValue + (curOutbound - prevOutbound) * avg price.
+  // Keep this conservative: show the month-over-month movement of units moved, not the value.
+  const totalAttention = lowStock.length + outOfStock.length + expiredBatches.length;
+
+  // Merge + sort activities (newest first), then trim to 10.
+  const movementItems: ActivityItem[] = recentMovements.map((m) => ({
+    kind: "movement" as const,
+    id: m.id,
+    type: m.type as "INBOUND" | "OUTBOUND" | "ADJUSTMENT" | "TINTING",
+    reason: m.reason,
+    quantity: m.quantity,
+    productName: m.product.name,
+    productId: m.product.id,
+    productUnit: m.product.unit,
+    batchNumber: m.batch?.batchNumber ?? null,
+    userName: m.user.name,
+    createdAt: m.createdAt,
+  }));
+  const poItems: ActivityItem[] = recentPOs.map((p) => ({
+    kind: "po" as const,
+    id: p.id,
+    supplierName: p.supplier?.name ?? null,
+    itemCount: p._count.items,
+    status: p.status,
+    userName: p.user.name,
+    createdAt: p.createdAt,
+  }));
+  const activities: ActivityItem[] = [...movementItems, ...poItems]
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, 10);
+
   const todayLabel = now.toLocaleDateString("id-ID", {
     weekday: "long",
     day: "numeric",
@@ -109,55 +176,112 @@ export default async function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5">
-          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-ok-solid" />
+          <span
+            className={`inline-block h-2 w-2 animate-pulse rounded-full ${
+              totalAttention > 0 ? "bg-danger-solid" : "bg-ok-solid"
+            }`}
+          />
           <span className="text-[12px] font-medium text-ink-soft">
-            {todayLabel} · <span className="text-ink-muted">Terakhir diperbarui baru saja</span>
+            {todayLabel} ·{" "}
+            <span className="text-ink-muted">
+              {totalAttention > 0
+                ? `${totalAttention} item butuh perhatian`
+                : "Semua kondisi aman"}
+            </span>
           </span>
         </div>
       </header>
 
-      {/* KPI row */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+      {/* Critical row — top priority operational signals */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <KpiCard
-          label="Total Produk Aktif"
-          value={formatNumber(totalActive)}
-          icon={Archive}
-          href="/products?status=active"
-        />
-        <KpiCard
-          label="SKU Tersedia"
-          value={formatNumber(inStockCount)}
-          icon={Droplets}
-          hint={`dari ${formatNumber(totalActive)} produk`}
-          href="/products?stock=ok"
-        />
-        <KpiCard
-          label="Nilai Inventaris"
-          value={compactRupiah(inventoryValue)}
-          icon={Banknote}
-          hint="berdasarkan harga beli"
-          href="/reports"
-        />
-        <KpiCard
-          label="Stok Menipis"
-          value={formatNumber(lowStock.length)}
-          icon={AlertTriangle}
-          tone={lowStock.length > 0 ? "warn" : "default"}
-          href="/products?stock=low"
+          label="Batch Kedaluwarsa"
+          value={formatNumber(expiredBatches.length)}
+          icon={CalendarX2}
+          tone={expiredBatches.length > 0 ? "danger" : "default"}
+          priority="critical"
+          context={
+            expiredBatches.length > 0
+              ? "Tindakan segera diperlukan"
+              : "Tidak ada batch expired"
+          }
+          href="/movements?reason=expired"
         />
         <KpiCard
           label="Stok Habis"
           value={formatNumber(outOfStock.length)}
           icon={PackageX}
           tone={outOfStock.length > 0 ? "danger" : "default"}
+          priority="critical"
+          context={
+            outOfStock.length > 0
+              ? "Restock diperlukan"
+              : "Semua produk tersedia"
+          }
           href="/products?stock=out"
         />
+      </div>
+
+      {/* Overview row — supporting context */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <KpiCard
-          label="Batch Kedaluwarsa"
-          value={formatNumber(expiredBatches.length)}
+          label="Stok Menipis"
+          value={formatNumber(lowStock.length)}
+          icon={AlertTriangle}
+          tone={lowStock.length > 0 ? "warn" : "default"}
+          context={
+            lowStock.length > 0
+              ? "Di bawah stok minimum"
+              : "Tidak ada item menipis"
+          }
+          href="/products?stock=low"
+        />
+        <KpiCard
+          label="Total Produk Aktif"
+          value={formatNumber(totalActive)}
+          icon={Archive}
+          context={`${formatNumber(inStockCount)} SKU tersedia`}
+          href="/products?status=active"
+        />
+        <KpiCard
+          label="SKU Tersedia"
+          value={formatNumber(inStockCount)}
+          icon={Droplets}
+          context={`dari ${formatNumber(totalActive)} produk aktif`}
+          href="/products?stock=ok"
+        />
+        <KpiCard
+          label="Nilai Inventaris"
+          value={compactRupiah(inventoryValue)}
+          icon={Banknote}
+          context="berdasarkan harga beli"
+          href="/reports"
+        />
+      </div>
+
+      {/* Operational signals row */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <KpiCard
+          label="Stok Keluar Bulan Ini"
+          value={`${formatNumber(curOutboundTotal)} unit`}
+          icon={Droplets}
+          delta={outboundDelta}
+          context="vs bulan lalu"
+        />
+        <KpiCard
+          label="Aktivitas 7 Hari"
+          value={formatNumber(recentMovements.length)}
+          icon={Archive}
+          context="transaksi stok tercatat"
+        />
+        <KpiCard
+          label="PO Aktif"
+          value={formatNumber(
+            recentPOs.filter((p) => p.status !== "received" && p.status !== "cancelled")
+              .length
+          )}
           icon={CalendarX2}
-          tone={expiredBatches.length > 0 ? "danger" : "default"}
-          href="/movements?reason=expired"
+          context="dari PO terbaru yang dibuat"
         />
       </div>
 
@@ -167,7 +291,8 @@ export default async function DashboardPage() {
           <AlertsCard expired={expiredBatches} nearExpiry={nearExpiryBatches} />
           <LowStockTable items={lowAndOut} />
         </div>
-        <div className="xl:col-span-4">
+        <div className="space-y-6 xl:col-span-4">
+          <RecentActivityCard items={activities} />
           <FastMovingCard rows={fastRows} />
         </div>
       </div>

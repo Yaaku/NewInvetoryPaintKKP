@@ -1,13 +1,37 @@
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import ToastHost from "@/components/ToastHost";
+import CommandPalette from "@/components/CommandPalette";
+
+export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+
+  const canProcure = can(user.role, "procurement.manage");
+
+  const [reorderCount, poCount, opnameCount, expiredCount] = await Promise.all([
+    prisma.product.count({
+      where: {
+        isActive: true,
+        currentStock: { lte: prisma.product.fields.minStock },
+      },
+    }),
+    canProcure
+      ? prisma.purchaseOrder.count({
+          where: { status: { in: ["draft", "ordered"] } },
+        })
+      : Promise.resolve(0),
+    prisma.stockOpname.count({ where: { status: "draft" } }),
+    prisma.batch.count({
+      where: { quantity: { gt: 0 }, expiryDate: { lt: new Date() } },
+    }),
+  ]);
 
   return (
     <div className="flex min-h-screen bg-canvas text-ink">
@@ -19,13 +43,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </a>
       <Sidebar
         canManageUsers={can(user.role, "users.manage")}
-        canProcure={can(user.role, "procurement.manage")}
+        canProcure={canProcure}
+        badges={{
+          reorder: reorderCount,
+          purchaseOrders: poCount,
+          opname: opnameCount,
+          movements: expiredCount,
+        }}
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar userName={user.name} email={user.email} />
         <main id="main-content" className="flex-1 px-6 py-6 lg:px-8">{children}</main>
       </div>
       <ToastHost />
+      <CommandPalette />
     </div>
   );
 }

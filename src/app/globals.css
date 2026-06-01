@@ -204,14 +204,67 @@ summary:focus-visible,
   .tbl {
     @apply w-full text-left border-collapse;
   }
+  /* Thead + tbody share the same box model so columns align pixel-perfect.
+     Keep padding, border, vertical-align, and background identical between
+     thead th and tbody td — only text style (size, weight, color) differs. */
+  .tbl thead th,
+  .tbl tbody td {
+    @apply border-b border-line px-4 py-3 align-middle text-left;
+  }
   .tbl thead th {
-    @apply bg-canvas/60 border-b border-line px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest2 text-ink-muted;
+    @apply bg-canvas text-[11px] font-semibold uppercase tracking-widest2 text-ink-muted;
   }
   .tbl tbody td {
-    @apply border-b border-line/80 px-4 py-3 align-middle text-[13.5px] text-ink;
+    @apply text-[13.5px] text-ink;
   }
   .tbl tbody tr:last-child td { border-bottom: 0; }
-  .tbl tbody tr:hover td { background: rgb(var(--canvas)); }
+  .tbl tbody tr {
+    transition: background-color 120ms ease;
+  }
+  .tbl tbody tr:hover td {
+    background: rgb(var(--canvas));
+  }
+  /* Subtle row striping for dense data */
+  .tbl-zebra tbody tr:nth-child(even) td {
+    background: rgb(var(--canvas) / 0.45);
+  }
+  .tbl-zebra tbody tr:nth-child(even):hover td {
+    background: rgb(var(--canvas));
+  }
+  /* Compact variant for large datasets */
+  .tbl-compact thead th,
+  .tbl-compact tbody td {
+    @apply px-4 py-2 text-[13px];
+  }
+  .tbl-compact thead th {
+    @apply text-[11px];
+  }
+  /* Sticky headers break the table layout: `position: sticky` on the thead
+     pulls it out of normal flow, which causes the thead to render below the
+     first tbody row AND shifts its columns out of alignment with the body.
+     To keep headers visible while scrolling on dense pages, use `.table-scroll`
+     with a sensible max-height — the thead scrolls with the content, but
+     columns stay perfectly aligned. */
+  .tbl-sticky thead th {
+    background: rgb(var(--surface));
+  }
+  /* Sticky first column for wide tables (e.g. products) */
+  .tbl-sticky-col th:first-child,
+  .tbl-sticky-col td:first-child {
+    position: sticky;
+    left: 0;
+    background: inherit;
+    z-index: 1;
+  }
+  .tbl-sticky-col th:first-child {
+    z-index: 2;
+  }
+  /* Scroll container for tables with sticky headers (max-h with vertical scroll). */
+  .table-scroll {
+    @apply rounded-xl border border-line bg-surface;
+    max-height: calc(100vh - 12rem);
+    overflow: auto;
+  }
 
   /* === Badges === */
   .badge {

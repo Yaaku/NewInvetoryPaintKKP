@@ -64,9 +64,16 @@ const BASE_GROUPS: NavGroup[] = [
 export default function Sidebar({
   canManageUsers = false,
   canProcure = false,
+  badges = {},
 }: {
   canManageUsers?: boolean;
   canProcure?: boolean;
+  badges?: {
+    reorder?: number;
+    purchaseOrders?: number;
+    opname?: number;
+    movements?: number;
+  };
 }) {
   const pathname = usePathname();
 
@@ -83,6 +90,16 @@ export default function Sidebar({
       { label: "Administrasi", items: [{ href: "/users", label: "Pengguna", icon: Users }] },
     ];
   }
+
+  const countFor = (href: string): number | null => {
+    let n: number | undefined;
+    if (href === "/reorder") n = badges.reorder;
+    else if (href === "/purchase-orders") n = badges.purchaseOrders;
+    else if (href === "/opname") n = badges.opname;
+    else if (href === "/movements") n = badges.movements;
+    if (typeof n !== "number" || n <= 0) return null;
+    return n;
+  };
 
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-line bg-surface md:flex md:flex-col">
@@ -114,6 +131,7 @@ export default function Sidebar({
               {g.items.map((n) => {
                 const active = pathname === n.href || pathname.startsWith(n.href + "/");
                 const Icon = n.icon;
+                const count = countFor(n.href);
                 return (
                   <li key={n.href} className="relative">
                     <Link
@@ -127,7 +145,8 @@ export default function Sidebar({
                         )}
                         strokeWidth={active ? 2.25 : 2}
                       />
-                      <span>{n.label}</span>
+                      <span className="flex-1 truncate">{n.label}</span>
+                      {count !== null ? <NavBadge count={count} active={active} /> : null}
                     </Link>
                   </li>
                 );
@@ -143,5 +162,22 @@ export default function Sidebar({
         </div>
       </div>
     </aside>
+  );
+}
+
+function NavBadge({ count, active }: { count: number; active: boolean }) {
+  const display = count > 99 ? "99+" : String(count);
+  return (
+    <span
+      aria-label={`${count} item perlu perhatian`}
+      className={cn(
+        "ml-auto inline-flex min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10.5px] font-bold leading-none",
+        active
+          ? "bg-accent text-white"
+          : "bg-warn-softer text-warn-textStrong border border-warn-border"
+      )}
+    >
+      {display}
+    </span>
   );
 }
