@@ -123,7 +123,7 @@ export default async function MovementsPage({ searchParams }: { searchParams: SP
       </form>
 
       <div className="table-wrap">
-        <table className="tbl">
+        <table className="tbl tbl-sticky tbl-compact">
           <thead>
             <tr>
               <th>When</th><th>Type</th><th>Reason</th><th>Product</th><th>Batch</th>

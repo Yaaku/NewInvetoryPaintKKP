@@ -128,8 +128,8 @@ export default async function ProductsPage({ searchParams }: { searchParams: SP 
         </div>
       </form>
 
-      <div className="table-wrap">
-        <table className="tbl">
+      <div className="table-scroll">
+        <table className="tbl tbl-sticky tbl-compact">
           <thead>
             <tr>
               <th>SKU</th>

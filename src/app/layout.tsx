@@ -2,8 +2,18 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "InventoryCat — Admin Gudang",
-  description: "Sistem manajemen inventaris toko cat",
+  title: {
+    default: "Berger Paint — Admin Gudang",
+    template: "%s · Berger Paint",
+  },
+  description: "Sistem manajemen inventaris Berger Paint — stok, batch, dan peringatan gudang.",
+  applicationName: "Berger Paint",
+  authors: [{ name: "Berger Paint" }],
+  keywords: ["Berger Paint", "inventaris", "stok", "gudang", "cat", "inventory"],
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f8fafc" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b1120" },
+  ],
 };
 
 // Applies the saved theme before first paint to avoid a flash of the wrong theme.
