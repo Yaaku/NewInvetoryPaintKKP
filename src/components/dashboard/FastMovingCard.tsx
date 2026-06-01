@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   ArrowDown,
   ArrowUp,
+  ArrowUpFromLine,
   ChevronRight,
   Droplets,
   Minus,
@@ -36,8 +37,25 @@ export default function FastMovingCard({ rows }: { rows: Row[] }) {
       </div>
 
       {rows.length === 0 ? (
-        <div className="flex-1 px-5 py-12 text-center text-[13px] text-ink-muted">
-          Belum ada aktivitas stok keluar bulan ini.
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-10 text-center">
+          <div className="grid h-12 w-12 place-items-center rounded-full bg-canvas text-ink-muted">
+            <TrendingUp className="h-6 w-6" strokeWidth={1.75} />
+          </div>
+          <div>
+            <div className="text-[13.5px] font-semibold text-ink">
+              Belum ada penjualan bulan ini
+            </div>
+            <div className="mt-0.5 text-[12px] text-ink-muted">
+              Catat transaksi stok keluar untuk mulai melihat produk paling laris.
+            </div>
+          </div>
+          <Link
+            href="/stock-out"
+            className="btn-accent btn-sm mt-1"
+          >
+            <ArrowUpFromLine className="h-3.5 w-3.5" />
+            Catat Stok Keluar
+          </Link>
         </div>
       ) : (
         <ul className="flex-1 divide-y divide-line">

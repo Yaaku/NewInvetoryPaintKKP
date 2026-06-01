@@ -26,7 +26,7 @@ export default async function SuppliersPage() {
         ) : null}
       </div>
       <div className="table-wrap">
-        <table className="tbl">
+        <table className="tbl tbl-sticky tbl-compact">
           <thead>
             <tr>
               <th>Name</th><th>Contact</th><th>Phone</th><th>Email</th><th>Lead Time</th>

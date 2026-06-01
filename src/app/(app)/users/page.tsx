@@ -45,7 +45,7 @@ export default async function UsersPage() {
             </div>
           </header>
           <div className="overflow-x-auto">
-            <table className="tbl">
+            <table className="tbl tbl-sticky tbl-compact">
               <thead>
                 <tr>
                   <th>Nama / Email</th>

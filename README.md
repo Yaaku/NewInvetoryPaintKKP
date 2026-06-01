@@ -1,4 +1,4 @@
-# InventoryCat — Paint Store Inventory Management
+# Berger Paint — Inventory Management
 
 A production-ready, Bahasa Indonesia inventory management system for a paint store. Built with Next.js 15, Prisma, and Tailwind CSS.
 

@@ -16,7 +16,7 @@ export default async function LoginPage({
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
           <h1 className="text-headline-lg font-sans tracking-tight text-on-surface">
-            InventoryCat
+            Berger Paint
           </h1>
           <p className="mt-1 text-label-caps font-sans uppercase text-on-surface-variant">
             Admin Gudang
