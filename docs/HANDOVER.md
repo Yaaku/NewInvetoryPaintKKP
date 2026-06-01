@@ -53,8 +53,9 @@ quantity, stockBefore/After) · `TintingRecord`+`TintingComponent` · `StockOpna
 
 ## Current progress (all on `main`)
 MVP complete + dark mode + Berger Paint rebrand / operational dashboard / ⌘K command
-palette + low-stock/expiry email digest. CI green. Merged PRs: #1 ci/docs, #2 partial PO
-receiving, #3 dark mode, #4 branding/dashboard/palette, #5 digest.
+palette + low-stock/expiry email digest + product picker / mobile nav / richer product
+& report pages. CI green. Merged PRs: #1 ci/docs, #2 partial PO receiving, #3 dark mode,
+#4 branding/dashboard/palette, #5 digest, #7 handover docs, #8 UI improvements.
 
 ## Environment & access
 - Local path: `C:\Berger_paint_Iventory` (Windows; Git Bash + PowerShell 5.1).
@@ -121,21 +122,23 @@ Required PR (0 approvals OK) · required status checks **Lint**, **Typecheck**, 
 strict/up-to-date · block force-push · no bypass actors · merge methods merge/squash/rebase.
 
 ## Known issues / open work
-- **PR #6 `feat/ui-improvements`** is OPEN with merge conflicts (`mergeable_state: dirty`).
-  Adds `ProductPicker.tsx`, `MobileNav.tsx`, reworked adjustments/stock-in/stock-out forms,
-  reports, products, large `globals.css` diff, Sidebar/Topbar. **Overlaps PR #4** → needs
-  manual reconciliation against current `main`, or close it. DECISION PENDING.
+- **PR #6 `feat/ui-improvements`** — RESOLVED. Closed as superseded; re-ported via **PR #8**
+  (`feat/ui-improvements-v2`, squash `ca443be`). #6 forked before dark mode (#3) /
+  branding (#4), so its `globals.css` + dashboard reworks conflicted. #8 took only the
+  net-new value — `ProductPicker.tsx`, `MobileNav.tsx` (drawer; `buildNavGroups()` now
+  exported from `Sidebar`), reworked stock-in/out/adjustment forms, products page
+  (color swatch / stock meter / quick actions) and reports — on top of main's dark-mode
+  tokens, dropping the stale globals.css/dashboard diffs.
 - Merged-but-undeleted remote branches: `chore/ci-and-docs`, `feat/partial-po-receiving`
-  (safe to delete).
+  (safe to delete). (`feat/ui-improvements` + `-v2` already deleted.)
 - Error boxes using `bg-danger/5` / `text-danger` rely on a non-existent `danger` DEFAULT
   token (silently unstyled) — pre-existing, cosmetic.
 - `next lint` prints a deprecation warning (harmless). Windows shows LF→CRLF warnings on add.
 
 ## Next recommended steps
-1. Resolve **PR #6** (reconcile + merge, or close).
-2. Configure digest in prod: `CRON_SECRET`, `RESEND_API_KEY`, `DIGEST_FROM/TO`, `APP_URL`;
+1. Configure digest in prod: `CRON_SECRET`, `RESEND_API_KEY`, `DIGEST_FROM/TO`, `APP_URL`;
    add repo secrets `DIGEST_URL` + `CRON_SECRET` for the scheduled Action.
-3. Roadmap: CSV import with validation preview; multi-warehouse + PostgreSQL; barcode scanning.
+2. Roadmap: CSV import with validation preview; multi-warehouse + PostgreSQL; barcode scanning.
 
 ## Must NOT change
 - **CI job names** `Lint`, `Typecheck`, `Build` (branch-protection required checks match these).
