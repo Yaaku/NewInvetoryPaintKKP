@@ -1,8 +1,9 @@
-import { User, Database, SlidersHorizontal, ShieldCheck, LogOut } from "lucide-react";
+import { User, Database, SlidersHorizontal, ShieldCheck, LogOut, Palette } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { formatNumber, NEAR_EXPIRY_DAYS } from "@/lib/utils";
 import { logoutAction } from "@/app/login/actions";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,25 @@ export default async function SettingsPage() {
           Informasi akun, konfigurasi sistem, dan ringkasan data.
         </p>
       </header>
+
+      {/* Appearance */}
+      <section className="panel">
+        <header className="panel-header">
+          <div className="flex items-center gap-2">
+            <Palette className="h-4 w-4 text-ink-muted" />
+            <h2 className="panel-title">Tampilan</h2>
+          </div>
+        </header>
+        <div className="flex flex-wrap items-center justify-between gap-4 p-4">
+          <div>
+            <div className="text-[14px] font-medium text-ink">Tema</div>
+            <div className="text-[12.5px] text-ink-muted">
+              Pilih tampilan terang, gelap, atau ikuti pengaturan sistem.
+            </div>
+          </div>
+          <ThemeToggle />
+        </div>
+      </section>
 
       <div className="grid gap-5 lg:grid-cols-2">
         {/* Account */}
