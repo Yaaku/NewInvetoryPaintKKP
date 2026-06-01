@@ -87,19 +87,23 @@ export default function Sidebar({
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-line bg-surface md:flex md:flex-col">
       {/* Brand */}
-      <div className="flex items-center gap-2.5 border-b border-line px-5 py-4">
-        <div className="grid h-9 w-9 place-items-center rounded-lg bg-accent text-white shadow-sm">
+      <Link
+        href="/dashboard"
+        aria-label="Berger Paint — ke Dashboard"
+        className="group flex items-center gap-2.5 border-b border-line px-5 py-4 transition-colors hover:bg-canvas"
+      >
+        <div className="grid h-9 w-9 place-items-center rounded-lg bg-accent text-white shadow-sm transition-transform group-hover:scale-105">
           <Palette className="h-[18px] w-[18px]" strokeWidth={2.25} />
         </div>
         <div className="min-w-0">
           <div className="truncate text-[15px] font-bold leading-tight tracking-tight text-ink">
-            InventoryCat
+            Berger Paint
           </div>
           <div className="text-[11px] font-medium uppercase tracking-widest2 text-ink-muted">
             Admin Gudang
           </div>
         </div>
-      </div>
+      </Link>
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-3 scrollbar-thin">

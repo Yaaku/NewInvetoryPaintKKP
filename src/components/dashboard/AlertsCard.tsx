@@ -59,7 +59,7 @@ export default function AlertsCard({
 function HeadlineAlert({ batch }: { batch: Batch }) {
   return (
     <div className="relative border-b border-line bg-danger-bg/60">
-      <div className="absolute left-0 top-0 h-full w-1 bg-danger-solid" />
+      <div className="absolute inset-y-0 left-0 w-1 bg-danger-solid" />
       <div className="flex items-start gap-3 px-5 py-4 pl-6">
         <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-danger-softer text-danger-solid">
           <AlertOctagon className="h-[18px] w-[18px]" />
@@ -104,7 +104,7 @@ function AlertRow({ kind, batch }: { kind: "danger" | "warn"; batch: Batch }) {
   return (
     <li className="relative">
       <div
-        className={`absolute left-0 top-0 h-full w-0.5 ${
+        className={`absolute inset-y-0 left-0 w-1 ${
           isDanger ? "bg-danger-solid" : "bg-warn-solid"
         }`}
       />
