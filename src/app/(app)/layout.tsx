@@ -14,6 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) redirect("/login");
 
   const canProcure = can(user.role, "procurement.manage");
+  const canManageUsers = can(user.role, "users.manage");
 
   const [reorderCount, poCount, opnameCount, expiredCount] = await Promise.all([
     prisma.product.count({
@@ -42,7 +43,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         Lewati ke konten utama
       </a>
       <Sidebar
-        canManageUsers={can(user.role, "users.manage")}
+        canManageUsers={canManageUsers}
         canProcure={canProcure}
         badges={{
           reorder: reorderCount,
@@ -52,7 +53,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         }}
       />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar userName={user.name} email={user.email} />
+        <Topbar
+          userName={user.name}
+          email={user.email}
+          canManageUsers={canManageUsers}
+          canProcure={canProcure}
+        />
         <main id="main-content" className="flex-1 px-6 py-6 lg:px-8">{children}</main>
       </div>
       <ToastHost />

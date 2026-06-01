@@ -20,8 +20,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type NavItem = { href: string; label: string; icon: LucideIcon };
-type NavGroup = { label: string; items: NavItem[] };
+export type NavItem = { href: string; label: string; icon: LucideIcon };
+export type NavGroup = { label: string; items: NavItem[] };
 
 const BASE_GROUPS: NavGroup[] = [
   {
@@ -61,6 +61,32 @@ const BASE_GROUPS: NavGroup[] = [
   },
 ];
 
+// Builds the role-filtered nav groups. Shared by the desktop Sidebar and the
+// mobile drawer (MobileNav) so both stay in sync.
+export function buildNavGroups({
+  canManageUsers = false,
+  canProcure = false,
+}: {
+  canManageUsers?: boolean;
+  canProcure?: boolean;
+}): NavGroup[] {
+  // Hide the Purchase Order link from roles without procurement rights.
+  let groups: NavGroup[] = BASE_GROUPS.map((g) =>
+    g.label === "Pengadaan" && !canProcure
+      ? { ...g, items: g.items.filter((i) => i.href !== "/purchase-orders") }
+      : g
+  );
+
+  if (canManageUsers) {
+    groups = [
+      ...groups,
+      { label: "Administrasi", items: [{ href: "/users", label: "Pengguna", icon: Users }] },
+    ];
+  }
+
+  return groups;
+}
+
 export default function Sidebar({
   canManageUsers = false,
   canProcure = false,
@@ -77,19 +103,7 @@ export default function Sidebar({
 }) {
   const pathname = usePathname();
 
-  // Hide the Purchase Order link from roles without procurement rights.
-  let groups: NavGroup[] = BASE_GROUPS.map((g) =>
-    g.label === "Pengadaan" && !canProcure
-      ? { ...g, items: g.items.filter((i) => i.href !== "/purchase-orders") }
-      : g
-  );
-
-  if (canManageUsers) {
-    groups = [
-      ...groups,
-      { label: "Administrasi", items: [{ href: "/users", label: "Pengguna", icon: Users }] },
-    ];
-  }
+  const groups = buildNavGroups({ canManageUsers, canProcure });
 
   const countFor = (href: string): number | null => {
     let n: number | undefined;
