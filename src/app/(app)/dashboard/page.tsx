@@ -1,11 +1,4 @@
-import {
-  AlertTriangle,
-  Archive,
-  Banknote,
-  CalendarX2,
-  Droplets,
-  PackageX,
-} from "lucide-react";
+import { AlertTriangle, Archive, Banknote, Droplets } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { formatNumber, NEAR_EXPIRY_DAYS } from "@/lib/utils";
 import KpiCard from "@/components/dashboard/KpiCard";
@@ -192,75 +185,28 @@ export default async function DashboardPage() {
         </div>
       </header>
 
-      {/* Critical row — top priority operational signals */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <KpiCard
-          label="Batch Kedaluwarsa"
-          value={formatNumber(expiredBatches.length)}
-          icon={CalendarX2}
-          tone={expiredBatches.length > 0 ? "danger" : "default"}
-          priority="critical"
-          context={
-            expiredBatches.length > 0
-              ? "Tindakan segera diperlukan"
-              : "Tidak ada batch expired"
-          }
-          href="/movements?reason=expired"
-        />
-        <KpiCard
-          label="Stok Habis"
-          value={formatNumber(outOfStock.length)}
-          icon={PackageX}
-          tone={outOfStock.length > 0 ? "danger" : "default"}
-          priority="critical"
-          context={
-            outOfStock.length > 0
-              ? "Restock diperlukan"
-              : "Semua produk tersedia"
-          }
-          href="/products?stock=out"
-        />
-      </div>
-
-      {/* Overview row — supporting context */}
+      {/* KPI row — one consistent tier; detail lives in the cards below */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <KpiCard
-          label="Stok Menipis"
-          value={formatNumber(lowStock.length)}
+          label="Perlu Perhatian"
+          value={formatNumber(totalAttention)}
           icon={AlertTriangle}
-          tone={lowStock.length > 0 ? "warn" : "default"}
+          tone={
+            expiredBatches.length > 0 || outOfStock.length > 0
+              ? "danger"
+              : lowStock.length > 0
+              ? "warn"
+              : "ok"
+          }
           context={
-            lowStock.length > 0
-              ? "Di bawah stok minimum"
-              : "Tidak ada item menipis"
+            totalAttention > 0
+              ? `${formatNumber(expiredBatches.length)} expired · ${formatNumber(
+                  outOfStock.length
+                )} habis · ${formatNumber(lowStock.length)} menipis`
+              : "Semua kondisi aman"
           }
           href="/products?stock=low"
         />
-        <KpiCard
-          label="Total Produk Aktif"
-          value={formatNumber(totalActive)}
-          icon={Archive}
-          context={`${formatNumber(inStockCount)} SKU tersedia`}
-          href="/products?status=active"
-        />
-        <KpiCard
-          label="SKU Tersedia"
-          value={formatNumber(inStockCount)}
-          icon={Droplets}
-          context={`dari ${formatNumber(totalActive)} produk aktif`}
-          href="/products?stock=ok"
-        />
-        <KpiCard
-          label="Nilai Inventaris"
-          value={compactRupiah(inventoryValue)}
-          icon={Banknote}
-          context="berdasarkan harga beli"
-          href="/reports"
-        />
-      </div>
-
-      {/* Operational signals row */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <KpiCard
           label="Stok Keluar Bulan Ini"
           value={`${formatNumber(curOutboundTotal)} unit`}
@@ -269,19 +215,20 @@ export default async function DashboardPage() {
           context="vs bulan lalu"
         />
         <KpiCard
-          label="Aktivitas 7 Hari"
-          value={formatNumber(recentMovements.length)}
+          label="Total Produk Aktif"
+          value={formatNumber(totalActive)}
           icon={Archive}
-          context="transaksi stok tercatat"
+          context={`${formatNumber(inStockCount)} tersedia · ${formatNumber(
+            outOfStock.length
+          )} habis`}
+          href="/products?status=active"
         />
         <KpiCard
-          label="PO Aktif"
-          value={formatNumber(
-            recentPOs.filter((p) => p.status !== "received" && p.status !== "cancelled")
-              .length
-          )}
-          icon={CalendarX2}
-          context="dari PO terbaru yang dibuat"
+          label="Nilai Inventaris"
+          value={compactRupiah(inventoryValue)}
+          icon={Banknote}
+          context="berdasarkan harga beli"
+          href="/reports"
         />
       </div>
 
