@@ -340,3 +340,21 @@ summary:focus-visible,
   .scrollbar-thin::-webkit-scrollbar-thumb { background: rgb(var(--line-strong)); border-radius: 4px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
 }
+
+/* === Print (laporan cetak) ===
+   Only the .print-area is printed; app chrome (sidebar/topbar/buttons) is hidden. */
+@media print {
+  body { background: #fff; }
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    border: 0;
+    box-shadow: none;
+  }
+  .no-print { display: none !important; }
+}

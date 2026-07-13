@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Printer } from "lucide-react";
 import { prisma } from "@/lib/db";
 import {
   formatCurrency,
@@ -171,6 +172,15 @@ export default async function ReportsPage({
           />
         </div>
       </form>
+
+      <div className="card flex flex-wrap items-center gap-2 p-3">
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-ink-soft/70">
+          <Printer className="h-4 w-4" /> Cetak Laporan (PDF)
+        </span>
+        <PrintLink jenis="masuk" label="Laporan Barang Masuk" from={fromDate} to={toDate} />
+        <PrintLink jenis="keluar" label="Laporan Barang Keluar" from={fromDate} to={toDate} />
+        <PrintLink jenis="kartu" label="Laporan Kartu Stok" from={fromDate} to={toDate} />
+      </div>
 
       <div className="grid gap-3 md:grid-cols-4">
         <Stat label="Nilai Inventaris" value={formatCurrency(totalValue)} />
@@ -370,6 +380,27 @@ export default async function ReportsPage({
         </Section>
       </div>
     </div>
+  );
+}
+
+function PrintLink({
+  jenis,
+  label,
+  from,
+  to,
+}: {
+  jenis: string;
+  label: string;
+  from: Date;
+  to: Date;
+}) {
+  return (
+    <Link
+      href={`/reports/print?jenis=${jenis}&from=${isoDate(from)}&to=${isoDate(to)}`}
+      className="btn-secondary btn-sm"
+    >
+      {label}
+    </Link>
   );
 }
 
