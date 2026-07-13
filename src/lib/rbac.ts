@@ -5,6 +5,7 @@ export type Role = (typeof ROLES)[number];
 
 export type Capability =
   | "stock.write"        // stock in/out, adjustments, tinting, opname
+  | "stock.verify"       // validate (verify/flag) stock in/out transactions
   | "catalog.manage"     // create / edit products & suppliers
   | "catalog.delete"     // hard-delete products & suppliers
   | "procurement.manage" // create / receive purchase orders
@@ -12,9 +13,9 @@ export type Capability =
 
 const ROLE_CAPS: Record<Role, Capability[]> = {
   staff: ["stock.write"],
-  manager: ["stock.write", "catalog.manage", "catalog.delete", "procurement.manage"],
-  admin: ["stock.write", "catalog.manage", "catalog.delete", "procurement.manage", "users.manage"],
-  owner: ["stock.write", "catalog.manage", "catalog.delete", "procurement.manage", "users.manage"],
+  manager: ["stock.write", "stock.verify", "catalog.manage", "catalog.delete", "procurement.manage"],
+  admin: ["stock.write", "stock.verify", "catalog.manage", "catalog.delete", "procurement.manage", "users.manage"],
+  owner: ["stock.write", "stock.verify", "catalog.manage", "catalog.delete", "procurement.manage", "users.manage"],
 };
 
 export const ROLE_LABELS: Record<Role, string> = {

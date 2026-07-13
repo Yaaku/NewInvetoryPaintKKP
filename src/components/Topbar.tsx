@@ -71,12 +71,14 @@ export default async function Topbar({
   email,
   canManageUsers = false,
   canProcure = false,
+  canVerify = false,
   isStaff = false,
 }: {
   userName: string;
   email: string;
   canManageUsers?: boolean;
   canProcure?: boolean;
+  canVerify?: boolean;
   isStaff?: boolean;
 }) {
   const initial = (userName?.trim()?.[0] ?? "A").toUpperCase();
@@ -84,7 +86,12 @@ export default async function Topbar({
 
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-line bg-surface/95 px-4 backdrop-blur-sm md:px-6">
-      <MobileNav canManageUsers={canManageUsers} canProcure={canProcure} isStaff={isStaff} />
+      <MobileNav
+        canManageUsers={canManageUsers}
+        canProcure={canProcure}
+        canVerify={canVerify}
+        isStaff={isStaff}
+      />
       <SearchBox />
 
       <div className="ml-auto flex items-center gap-1">

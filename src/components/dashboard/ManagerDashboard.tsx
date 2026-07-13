@@ -1,38 +1,31 @@
 import Link from "next/link";
-import { ArrowUpFromLine, ClipboardList, Package, ShoppingCart } from "lucide-react";
+import { ChevronRight, ClipboardCheck, ShieldCheck, TriangleAlert } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { formatNumber } from "@/lib/utils";
 import { monthlyStockFlow } from "@/lib/dashboard-metrics";
+import { getValidationItems } from "@/lib/validation";
 import KpiCard from "@/components/dashboard/KpiCard";
-import LowStockTable from "@/components/dashboard/LowStockTable";
 import StockFlowChart from "@/components/dashboard/StockFlowChart";
+import ValidationList from "@/components/dashboard/ValidationList";
 
-/** Store-manager view — flow chart plus catalog & procurement focus. */
+/** Store-manager view — validate stock in/out transactions (separation of duties). */
 export default async function ManagerDashboard({ name }: { name: string }) {
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  const [products, flow, keluarNow, restockCount, poActive] = await Promise.all([
-    prisma.product.findMany({
-      where: { isActive: true },
-      select: { id: true, sku: true, name: true, unit: true, currentStock: true, minStock: true },
-    }),
+  const [pending, flow, pendingCount, verifiedToday, flaggedCount] = await Promise.all([
+    getValidationItems("pending", 25),
     monthlyStockFlow(6),
-    prisma.stockMovement.findMany({
-      where: { type: "OUTBOUND", createdAt: { gte: monthStart } },
-      select: { quantity: true },
+    prisma.stockMovement.count({
+      where: { type: { in: ["INBOUND", "OUTBOUND"] }, verificationStatus: "pending" },
     }),
-    prisma.product.count({
-      where: { isActive: true, currentStock: { lte: prisma.product.fields.minStock } },
+    prisma.stockMovement.count({
+      where: { verificationStatus: "verified", verifiedAt: { gte: todayStart } },
     }),
-    prisma.purchaseOrder.count({ where: { status: { in: ["draft", "ordered", "partial"] } } }),
+    prisma.stockMovement.count({
+      where: { type: { in: ["INBOUND", "OUTBOUND"] }, verificationStatus: "flagged" },
+    }),
   ]);
-
-  const keluarTotal = keluarNow.reduce((s, m) => s + Math.abs(m.quantity), 0);
-  const lowAndOut = products
-    .filter((p) => p.currentStock <= p.minStock)
-    .sort((a, b) => a.currentStock - b.currentStock)
-    .slice(0, 8);
 
   return (
     <div className="space-y-6">
@@ -41,54 +34,65 @@ export default async function ManagerDashboard({ name }: { name: string }) {
           Selamat datang, {name}
         </h1>
         <p className="mt-1 text-[14px] text-ink-muted">
-          Ringkasan manajer — pantau arus stok, katalog, dan kebutuhan pengadaan.
+          Validasi transaksi barang masuk &amp; keluar sebelum dianggap final.
         </p>
       </header>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
         <KpiCard
-          label="Saran Restock"
-          value={formatNumber(restockCount)}
-          icon={Package}
-          tone={restockCount > 0 ? "warn" : "ok"}
-          context="produk di bawah minimum"
-          href="/reorder"
+          label="Menunggu Validasi"
+          value={formatNumber(pendingCount)}
+          icon={ClipboardCheck}
+          tone={pendingCount > 0 ? "warn" : "ok"}
+          context="transaksi masuk/keluar"
+          href="/validation"
         />
         <KpiCard
-          label="Purchase Order Aktif"
-          value={formatNumber(poActive)}
-          icon={ShoppingCart}
-          context="draft / ordered / partial"
-          href="/purchase-orders"
+          label="Terverifikasi Hari Ini"
+          value={formatNumber(verifiedToday)}
+          icon={ShieldCheck}
+          tone="ok"
+          context="transaksi tervalidasi"
         />
         <KpiCard
-          label="Barang Keluar Bulan Ini"
-          value={`${formatNumber(keluarTotal)} unit`}
-          icon={ArrowUpFromLine}
-          context="total pengeluaran"
-        />
-        <KpiCard
-          label="Produk Aktif"
-          value={formatNumber(products.length)}
-          icon={ClipboardList}
-          context="katalog barang"
-          href="/products"
+          label="Ditandai Bermasalah"
+          value={formatNumber(flaggedCount)}
+          icon={TriangleAlert}
+          tone={flaggedCount > 0 ? "danger" : "default"}
+          context="perlu koreksi admin"
+          href="/validation?status=flagged"
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-        <section className="panel xl:col-span-7">
-          <header className="panel-header">
-            <h2 className="panel-title">Barang Masuk vs Keluar — 6 Bulan Terakhir</h2>
-          </header>
-          <div className="p-5">
-            <StockFlowChart data={flow} />
+      <section className="panel">
+        <header className="panel-header">
+          <div className="flex items-center gap-2">
+            <ClipboardCheck className="h-[16px] w-[16px] text-ink-muted" />
+            <h2 className="panel-title">Perlu Validasi</h2>
+            {pendingCount > 0 ? (
+              <span className="badge badge-warn px-2 py-0.5 text-[10.5px] font-semibold">
+                {formatNumber(pendingCount)} menunggu
+              </span>
+            ) : null}
           </div>
-        </section>
-        <div className="xl:col-span-5">
-          <LowStockTable items={lowAndOut} />
+          <Link href="/validation" className="panel-action inline-flex items-center gap-0.5">
+            Lihat Semua <ChevronRight className="h-3.5 w-3.5" />
+          </Link>
+        </header>
+        <ValidationList
+          items={pending}
+          emptyText="Semua transaksi masuk/keluar sudah divalidasi."
+        />
+      </section>
+
+      <section className="panel">
+        <header className="panel-header">
+          <h2 className="panel-title">Barang Masuk vs Keluar — 6 Bulan Terakhir</h2>
+        </header>
+        <div className="p-5">
+          <StockFlowChart data={flow} />
         </div>
-      </div>
+      </section>
     </div>
   );
 }
