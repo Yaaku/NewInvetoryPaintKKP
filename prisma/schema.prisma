@@ -15,10 +15,11 @@ model User {
   role          String   @default("admin")
   createdAt     DateTime @default(now())
 
-  stockMovements StockMovement[]
-  tintingRecords TintingRecord[]
-  stockOpnames   StockOpname[]
-  purchaseOrders PurchaseOrder[]
+  stockMovements    StockMovement[] @relation("RecordedMovements")
+  verifiedMovements StockMovement[] @relation("VerifiedMovements")
+  tintingRecords    TintingRecord[]
+  stockOpnames      StockOpname[]
+  purchaseOrders    PurchaseOrder[]
 }
 
 model Supplier {
@@ -118,13 +119,21 @@ model StockMovement {
   notes               String?
   createdAt           DateTime @default(now())
 
-  product Product @relation(fields: [productId], references: [id])
-  batch   Batch?  @relation(fields: [batchId], references: [id])
-  user    User    @relation(fields: [userId], references: [id])
+  // Manager verification of stock in/out (separation of duties)
+  verificationStatus  String   @default("pending") // pending | verified | flagged
+  verifiedById        Int?
+  verifiedAt          DateTime?
+  verificationNote    String?
+
+  product    Product @relation(fields: [productId], references: [id])
+  batch      Batch?  @relation(fields: [batchId], references: [id])
+  user       User    @relation("RecordedMovements", fields: [userId], references: [id])
+  verifiedBy User?   @relation("VerifiedMovements", fields: [verifiedById], references: [id])
 
   @@index([productId])
   @@index([createdAt])
   @@index([type])
+  @@index([verificationStatus])
 }
 
 model TintingRecord {

@@ -15,6 +15,7 @@ import {
   BarChart3,
   ShoppingCart,
   ClipboardList,
+  ShieldCheck,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -66,16 +67,33 @@ const BASE_GROUPS: NavGroup[] = [
 export function buildNavGroups({
   canManageUsers = false,
   canProcure = false,
+  canVerify = false,
+  isStaff = false,
 }: {
   canManageUsers?: boolean;
   canProcure?: boolean;
+  canVerify?: boolean;
+  isStaff?: boolean;
 }): NavGroup[] {
+  // Staf Operasional only need the dashboard (stock lookup) — hide the rest.
+  if (isStaff) return BASE_GROUPS.filter((g) => g.label === "Ringkasan");
+
   // Hide the Purchase Order link from roles without procurement rights.
   let groups: NavGroup[] = BASE_GROUPS.map((g) =>
     g.label === "Pengadaan" && !canProcure
       ? { ...g, items: g.items.filter((i) => i.href !== "/purchase-orders") }
       : g
   );
+
+  // Insert the validation menu (managers/admin) right after Transaksi.
+  if (canVerify) {
+    const idx = groups.findIndex((g) => g.label === "Transaksi");
+    const validasi: NavGroup = {
+      label: "Validasi",
+      items: [{ href: "/validation", label: "Validasi Transaksi", icon: ShieldCheck }],
+    };
+    groups = [...groups.slice(0, idx + 1), validasi, ...groups.slice(idx + 1)];
+  }
 
   if (canManageUsers) {
     groups = [
@@ -90,20 +108,25 @@ export function buildNavGroups({
 export default function Sidebar({
   canManageUsers = false,
   canProcure = false,
+  canVerify = false,
+  isStaff = false,
   badges = {},
 }: {
   canManageUsers?: boolean;
   canProcure?: boolean;
+  canVerify?: boolean;
+  isStaff?: boolean;
   badges?: {
     reorder?: number;
     purchaseOrders?: number;
     opname?: number;
     movements?: number;
+    validation?: number;
   };
 }) {
   const pathname = usePathname();
 
-  const groups = buildNavGroups({ canManageUsers, canProcure });
+  const groups = buildNavGroups({ canManageUsers, canProcure, canVerify, isStaff });
 
   const countFor = (href: string): number | null => {
     let n: number | undefined;
@@ -111,6 +134,7 @@ export default function Sidebar({
     else if (href === "/purchase-orders") n = badges.purchaseOrders;
     else if (href === "/opname") n = badges.opname;
     else if (href === "/movements") n = badges.movements;
+    else if (href === "/validation") n = badges.validation;
     if (typeof n !== "number" || n <= 0) return null;
     return n;
   };
