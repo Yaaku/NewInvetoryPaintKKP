@@ -10,13 +10,15 @@ import { cn } from "@/lib/utils";
 export default function MobileNav({
   canManageUsers = false,
   canProcure = false,
+  isStaff = false,
 }: {
   canManageUsers?: boolean;
   canProcure?: boolean;
+  isStaff?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const groups = buildNavGroups({ canManageUsers, canProcure });
+  const groups = buildNavGroups({ canManageUsers, canProcure, isStaff });
 
   return (
     <div className="md:hidden">

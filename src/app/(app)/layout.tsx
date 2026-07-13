@@ -15,6 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const canProcure = can(user.role, "procurement.manage");
   const canManageUsers = can(user.role, "users.manage");
+  const isStaff = user.role === "staff";
 
   const [reorderCount, poCount, opnameCount, expiredCount] = await Promise.all([
     prisma.product.count({
@@ -45,6 +46,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <Sidebar
         canManageUsers={canManageUsers}
         canProcure={canProcure}
+        isStaff={isStaff}
         badges={{
           reorder: reorderCount,
           purchaseOrders: poCount,
@@ -58,6 +60,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           email={user.email}
           canManageUsers={canManageUsers}
           canProcure={canProcure}
+          isStaff={isStaff}
         />
         <main id="main-content" className="flex-1 px-6 py-6 lg:px-8">{children}</main>
       </div>

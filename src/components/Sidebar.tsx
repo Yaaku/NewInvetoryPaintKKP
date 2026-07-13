@@ -66,10 +66,15 @@ const BASE_GROUPS: NavGroup[] = [
 export function buildNavGroups({
   canManageUsers = false,
   canProcure = false,
+  isStaff = false,
 }: {
   canManageUsers?: boolean;
   canProcure?: boolean;
+  isStaff?: boolean;
 }): NavGroup[] {
+  // Staf Operasional only need the dashboard (stock lookup) — hide the rest.
+  if (isStaff) return BASE_GROUPS.filter((g) => g.label === "Ringkasan");
+
   // Hide the Purchase Order link from roles without procurement rights.
   let groups: NavGroup[] = BASE_GROUPS.map((g) =>
     g.label === "Pengadaan" && !canProcure
@@ -90,10 +95,12 @@ export function buildNavGroups({
 export default function Sidebar({
   canManageUsers = false,
   canProcure = false,
+  isStaff = false,
   badges = {},
 }: {
   canManageUsers?: boolean;
   canProcure?: boolean;
+  isStaff?: boolean;
   badges?: {
     reorder?: number;
     purchaseOrders?: number;
@@ -103,7 +110,7 @@ export default function Sidebar({
 }) {
   const pathname = usePathname();
 
-  const groups = buildNavGroups({ canManageUsers, canProcure });
+  const groups = buildNavGroups({ canManageUsers, canProcure, isStaff });
 
   const countFor = (href: string): number | null => {
     let n: number | undefined;
