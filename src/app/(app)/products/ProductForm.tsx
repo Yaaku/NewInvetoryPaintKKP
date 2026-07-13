@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { Wand2 } from "lucide-react";
 import type { Product, Supplier } from "@prisma/client";
 import { createProduct, updateProduct } from "./actions";
+import { buildSku } from "@/lib/sku";
 
 const PAINT_TYPES = [
   "wall paint", "wood paint", "metal paint", "primer", "waterproofing",
@@ -19,16 +21,32 @@ export default function ProductForm({
   product?: Product | null;
   suppliers: Supplier[];
 }) {
-  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  // Live SKU generation from the fields that drive the semantic code.
+  const [parts, setParts] = useState({
+    name: product?.name ?? "",
+    brand: product?.brand ?? "",
+    paintType: product?.paintType ?? "",
+    tintBase: product?.tintBase ?? "",
+    packageSize: product?.packageSize ?? "",
+  });
+  const [sku, setSku] = useState(product?.sku ?? "");
+  // Existing products keep their SKU; new ones auto-fill until the user edits it.
+  const [skuLocked, setSkuLocked] = useState(!!product);
+  const autoSku = useMemo(() => buildSku(parts), [parts]);
+
+  useEffect(() => {
+    if (!skuLocked) setSku(autoSku);
+  }, [autoSku, skuLocked]);
+
+  const setPart = (key: keyof typeof parts) => (value: string) =>
+    setParts((p) => ({ ...p, [key]: value }));
+
   async function onSubmit(form: FormData) {
-    setError(null);
     startTransition(async () => {
-      const result = product
-        ? await updateProduct(product.id, form)
-        : await createProduct(form);
-      if (result && "error" in result && result.error) setError(result.error);
+      if (product) await updateProduct(product.id, form);
+      else await createProduct(form);
     });
   }
 
@@ -37,19 +55,62 @@ export default function ProductForm({
       <Section title="Identity">
         <Grid>
           <Field label="Product Name *">
-            <input name="name" required defaultValue={product?.name ?? ""} className="input" />
+            <input
+              name="name"
+              required
+              defaultValue={product?.name ?? ""}
+              onChange={(e) => setPart("name")(e.target.value)}
+              className="input"
+            />
           </Field>
-          <Field label="SKU *">
-            <input name="sku" required defaultValue={product?.sku ?? ""} className="input" />
+          <Field label="SKU">
+            <div className="flex gap-2">
+              <input
+                name="sku"
+                value={sku}
+                onChange={(e) => {
+                  setSku(e.target.value);
+                  setSkuLocked(true);
+                }}
+                placeholder="Otomatis dari merek & tipe"
+                className="input mono flex-1"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setSkuLocked(false);
+                  setSku(autoSku);
+                }}
+                title="Buat ulang otomatis"
+                className="btn-secondary btn-sm shrink-0"
+              >
+                <Wand2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <p className="mt-1 text-[11px] text-ink-muted">
+              {skuLocked
+                ? "Diisi manual — klik ikon untuk buat otomatis."
+                : "Dibuat otomatis. Ketik untuk menimpa."}
+            </p>
           </Field>
           <Field label="Category">
             <input name="category" defaultValue={product?.category ?? ""} className="input" />
           </Field>
           <Field label="Brand">
-            <input name="brand" defaultValue={product?.brand ?? ""} className="input" />
+            <input
+              name="brand"
+              defaultValue={product?.brand ?? ""}
+              onChange={(e) => setPart("brand")(e.target.value)}
+              className="input"
+            />
           </Field>
           <Field label="Paint Type">
-            <select name="paintType" defaultValue={product?.paintType ?? ""} className="input">
+            <select
+              name="paintType"
+              defaultValue={product?.paintType ?? ""}
+              onChange={(e) => setPart("paintType")(e.target.value)}
+              className="input"
+            >
               <option value="">—</option>
               {PAINT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
@@ -77,12 +138,23 @@ export default function ProductForm({
             </select>
           </Field>
           <Field label="Tinting Base">
-            <select name="tintBase" defaultValue={product?.tintBase ?? ""} className="input">
+            <select
+              name="tintBase"
+              defaultValue={product?.tintBase ?? ""}
+              onChange={(e) => setPart("tintBase")(e.target.value)}
+              className="input"
+            >
               {TINT_BASE.map((t) => <option key={t} value={t}>{t || "—"}</option>)}
             </select>
           </Field>
           <Field label="Package Size">
-            <input name="packageSize" defaultValue={product?.packageSize ?? ""} placeholder="1L, 2.5L, 5L, gallon…" className="input" />
+            <input
+              name="packageSize"
+              defaultValue={product?.packageSize ?? ""}
+              onChange={(e) => setPart("packageSize")(e.target.value)}
+              placeholder="1L, 2.5L, 5L, gallon…"
+              className="input"
+            />
           </Field>
           <Field label="Unit *">
             <select name="unit" required defaultValue={product?.unit ?? "pcs"} className="input">
@@ -120,12 +192,6 @@ export default function ProductForm({
           Active (available for transactions)
         </label>
       </Section>
-
-      {error ? (
-        <div className="rounded border border-danger/40 bg-danger/5 px-3 py-2 text-xs text-danger">
-          {error}
-        </div>
-      ) : null}
 
       <div className="flex justify-end gap-2">
         <button type="submit" className="btn" disabled={pending}>
