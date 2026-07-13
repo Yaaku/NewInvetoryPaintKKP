@@ -9,46 +9,32 @@ import {
 } from "lucide-react";
 import { prisma } from "@/lib/db";
 import LowStockTable from "@/components/dashboard/LowStockTable";
-import RecentActivityCard, {
-  type ActivityItem,
-} from "@/components/dashboard/RecentActivityCard";
+import StockLookup, { type LookupProduct } from "@/components/dashboard/StockLookup";
 
-/** Task-focused view for Staf Operasional — quick actions, no financial data. */
+/** Task-focused view for Staf Operasional — stock lookup for the counter,
+ *  quick actions, and low-stock alerts. No financial data. */
 export default async function StaffDashboard({ name }: { name: string }) {
-  const [products, recentMovements] = await Promise.all([
-    prisma.product.findMany({
-      where: { isActive: true },
-      select: { id: true, sku: true, name: true, unit: true, currentStock: true, minStock: true },
-    }),
-    prisma.stockMovement.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 8,
-      include: {
-        product: { select: { id: true, name: true, unit: true } },
-        batch: { select: { batchNumber: true } },
-        user: { select: { name: true } },
-      },
-    }),
-  ]);
+  const products: LookupProduct[] = await prisma.product.findMany({
+    where: { isActive: true },
+    orderBy: { name: "asc" },
+    select: {
+      id: true,
+      name: true,
+      sku: true,
+      colorName: true,
+      colorCode: true,
+      brand: true,
+      category: true,
+      unit: true,
+      currentStock: true,
+      minStock: true,
+    },
+  });
 
   const lowAndOut = products
     .filter((p) => p.currentStock <= p.minStock)
     .sort((a, b) => a.currentStock - b.currentStock)
     .slice(0, 8);
-
-  const activities: ActivityItem[] = recentMovements.map((m) => ({
-    kind: "movement" as const,
-    id: m.id,
-    type: m.type as "INBOUND" | "OUTBOUND" | "ADJUSTMENT" | "TINTING",
-    reason: m.reason,
-    quantity: m.quantity,
-    productName: m.product.name,
-    productId: m.product.id,
-    productUnit: m.product.unit,
-    batchNumber: m.batch?.batchNumber ?? null,
-    userName: m.user.name,
-    createdAt: m.createdAt,
-  }));
 
   return (
     <div className="space-y-6">
@@ -57,7 +43,7 @@ export default async function StaffDashboard({ name }: { name: string }) {
           Selamat datang, {name}
         </h1>
         <p className="mt-1 text-[14px] text-ink-muted">
-          Pilih tindakan cepat untuk mencatat transaksi stok.
+          Cek ketersediaan stok untuk melayani pelanggan, lalu catat transaksi.
         </p>
       </header>
 
@@ -70,11 +56,11 @@ export default async function StaffDashboard({ name }: { name: string }) {
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-        <div className="xl:col-span-7">
-          <LowStockTable items={lowAndOut} />
+        <div className="xl:col-span-8">
+          <StockLookup products={products} />
         </div>
-        <div className="xl:col-span-5">
-          <RecentActivityCard items={activities} />
+        <div className="xl:col-span-4">
+          <LowStockTable items={lowAndOut} />
         </div>
       </div>
     </div>
