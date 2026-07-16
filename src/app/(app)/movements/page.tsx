@@ -149,7 +149,7 @@ export default async function MovementsPage({ searchParams }: { searchParams: SP
                   <div className="text-[10px] text-ink-soft/60">{m.product.sku}</div>
                 </td>
                 <td className="font-mono text-xs">{m.batch?.batchNumber ?? "—"}</td>
-                <td className={`text-right font-mono ${m.quantity < 0 ? "text-danger" : "text-accent"}`}>
+                <td className={`text-right font-mono ${m.quantity < 0 ? "text-danger-text" : "text-accent"}`}>
                   {m.quantity > 0 ? "+" : ""}{m.quantity}
                 </td>
                 <td className="font-mono text-xs">{m.stockBefore} → {m.stockAfter}</td>

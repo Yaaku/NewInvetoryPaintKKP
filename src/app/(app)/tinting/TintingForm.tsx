@@ -153,7 +153,7 @@ export default function TintingForm({
       </Field>
 
       {error ? (
-        <div className="rounded border border-danger/40 bg-danger/5 px-3 py-2 text-xs text-danger">{error}</div>
+        <div className="rounded border border-danger-border bg-danger-bg px-3 py-2 text-xs text-danger-text">{error}</div>
       ) : null}
 
       <div className="flex justify-end">
