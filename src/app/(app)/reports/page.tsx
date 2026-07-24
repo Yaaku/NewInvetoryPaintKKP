@@ -276,7 +276,7 @@ export default async function ReportsPage({
                       <td>{b.product.name}</td>
                       <td className="font-mono text-xs">{b.batchNumber}</td>
                       <td className="text-right font-mono">{b.quantity}</td>
-                      <td className={expired ? "text-danger" : "text-warn"}>
+                      <td className={expired ? "text-danger-text" : "text-warn-text"}>
                         {formatDate(b.expiryDate)}
                       </td>
                     </tr>
@@ -369,7 +369,7 @@ export default async function ReportsPage({
                     </td>
                     <td>{m.product.name}</td>
                     <td className="text-xs">{m.reason}</td>
-                    <td className="text-right font-mono text-danger">
+                    <td className="text-right font-mono text-danger-text">
                       {m.quantity}
                     </td>
                   </tr>

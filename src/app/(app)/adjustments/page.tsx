@@ -13,7 +13,12 @@ const REASONS = [
   "other",
 ];
 
-export default async function AdjustmentsPage() {
+export default async function AdjustmentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ productId?: string }>;
+}) {
+  const { productId } = await searchParams;
   const [products, recent] = await Promise.all([
     prisma.product.findMany({
       where: { isActive: true },
@@ -36,7 +41,7 @@ export default async function AdjustmentsPage() {
           Koreksi selisih stok — alasan dan catatan wajib diisi.
         </p>
       </div>
-      <AdjustmentForm products={products} reasons={REASONS} />
+      <AdjustmentForm products={products} reasons={REASONS} initialProductId={productId} />
       <div className="card p-4">
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-ink-soft/70">
           Recent Adjustments
@@ -52,7 +57,7 @@ export default async function AdjustmentsPage() {
                   <td className="font-mono text-xs">{m.createdAt.toLocaleString("en-GB")}</td>
                   <td>{m.product.name}</td>
                   <td className="text-xs">{m.reason}</td>
-                  <td className={`text-right font-mono ${m.quantity < 0 ? "text-danger" : m.quantity > 0 ? "text-accent" : ""}`}>
+                  <td className={`text-right font-mono ${m.quantity < 0 ? "text-danger-text" : m.quantity > 0 ? "text-accent" : ""}`}>
                     {m.quantity > 0 ? "+" : ""}{m.quantity}
                   </td>
                   <td className="font-mono text-xs">{m.stockBefore} → {m.stockAfter}</td>

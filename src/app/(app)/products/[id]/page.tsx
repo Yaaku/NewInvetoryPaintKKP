@@ -130,7 +130,7 @@ export default async function ProductDetailPage({
                       <td>{formatDate(b.receivedDate)}</td>
                       <td>
                         {b.expiryDate ? (
-                          <span className={d !== null && d < 0 ? "text-danger" : d !== null && d < 60 ? "text-warn" : ""}>
+                          <span className={d !== null && d < 0 ? "text-danger-text" : d !== null && d < 60 ? "text-warn-text" : ""}>
                             {formatDate(b.expiryDate)}
                           </span>
                         ) : "—"}
@@ -163,7 +163,7 @@ export default async function ProductDetailPage({
                   <td><span className="badge">{m.type}</span></td>
                   <td className="text-xs">{m.reason}</td>
                   <td className="font-mono text-xs">{m.batch?.batchNumber ?? "—"}</td>
-                  <td className={`text-right font-mono ${m.quantity < 0 ? "text-danger" : "text-accent"}`}>
+                  <td className={`text-right font-mono ${m.quantity < 0 ? "text-danger-text" : "text-accent"}`}>
                     {m.quantity > 0 ? "+" : ""}{m.quantity}
                   </td>
                   <td className="text-right font-mono text-xs">{m.stockBefore} → {m.stockAfter}</td>

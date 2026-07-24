@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, Info, TriangleAlert, X } from "lucide-react";
 
@@ -29,6 +29,9 @@ function ToastReader({ onFlash }: { onFlash: (msg: string, type: ToastType) => v
 
 export default function ToastHost() {
   const [toast, setToast] = useState<{ msg: string; type: ToastType } | null>(null);
+  // Stable identity — an inline arrow here re-triggers ToastReader's effect on
+  // every render, looping setState until React aborts ("Maximum update depth").
+  const onFlash = useCallback((msg: string, type: ToastType) => setToast({ msg, type }), []);
 
   useEffect(() => {
     if (!toast) return;
@@ -47,7 +50,7 @@ export default function ToastHost() {
   return (
     <>
       <Suspense fallback={null}>
-        <ToastReader onFlash={(msg, type) => setToast({ msg, type })} />
+        <ToastReader onFlash={onFlash} />
       </Suspense>
       {toast ? (
         <div className="pointer-events-none fixed bottom-5 right-5 z-50 flex justify-end">

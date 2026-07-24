@@ -107,7 +107,7 @@ export default function OpnameForm({
                       className="input w-24 text-right font-mono"
                     />
                   </td>
-                  <td className={`text-right font-mono ${diff < 0 ? "text-danger" : diff > 0 ? "text-accent" : "text-ink-soft/50"}`}>
+                  <td className={`text-right font-mono ${diff < 0 ? "text-danger-text" : diff > 0 ? "text-accent" : "text-ink-soft/50"}`}>
                     {diff > 0 ? "+" : ""}{diff}
                   </td>
                   <td>

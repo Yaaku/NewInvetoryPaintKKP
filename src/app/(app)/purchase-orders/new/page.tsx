@@ -7,10 +7,10 @@ export const dynamic = "force-dynamic";
 export default async function NewPurchaseOrderPage({
   searchParams,
 }: {
-  searchParams: Promise<{ supplier?: string }>;
+  searchParams: Promise<{ supplier?: string; productId?: string }>;
 }) {
   await requireCapability("procurement.manage");
-  const { supplier } = await searchParams;
+  const { supplier, productId } = await searchParams;
 
   const [suppliers, products] = await Promise.all([
     prisma.supplier.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
@@ -20,6 +20,13 @@ export default async function NewPurchaseOrderPage({
       select: { id: true, name: true, sku: true, unit: true, purchasePrice: true, supplierId: true },
     }),
   ]);
+
+  // Deep links from dashboard alerts pass ?productId= — prefill its supplier + first line.
+  const initialProduct = productId
+    ? products.find((p) => String(p.id) === productId)
+    : undefined;
+  const initialSupplierId =
+    supplier ?? (initialProduct?.supplierId ? String(initialProduct.supplierId) : "");
 
   return (
     <div className="space-y-6">
@@ -32,7 +39,8 @@ export default async function NewPurchaseOrderPage({
       <NewPoForm
         suppliers={suppliers}
         products={products}
-        initialSupplierId={supplier ?? ""}
+        initialSupplierId={initialSupplierId}
+        initialProductId={initialProduct ? String(initialProduct.id) : ""}
       />
     </div>
   );

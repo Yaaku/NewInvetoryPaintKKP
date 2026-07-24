@@ -56,7 +56,7 @@ export default async function StockOutPage() {
                   <td className="font-mono text-xs">{m.createdAt.toLocaleString("en-GB")}</td>
                   <td>{m.product.name}</td>
                   <td className="font-mono text-xs">{m.batch?.batchNumber ?? "—"}</td>
-                  <td className="text-right font-mono text-danger">{m.quantity}</td>
+                  <td className="text-right font-mono text-danger-text">{m.quantity}</td>
                   <td className="text-xs">{m.reason}</td>
                   <td className="text-xs">{m.user.name}</td>
                 </tr>

@@ -16,15 +16,26 @@ export default function NewPoForm({
   suppliers,
   products,
   initialSupplierId,
+  initialProductId,
 }: {
   suppliers: SupplierOpt[];
   products: ProductOpt[];
   initialSupplierId: string;
+  initialProductId?: string;
 }) {
   const [supplierId, setSupplierId] = useState(initialSupplierId);
   const [expectedDate, setExpectedDate] = useState("");
   const [notes, setNotes] = useState("");
-  const [lines, setLines] = useState<Line[]>([{ productId: "", quantity: "", unitCost: "" }]);
+  const initialProduct = products.find((p) => String(p.id) === initialProductId);
+  const [lines, setLines] = useState<Line[]>([
+    initialProduct
+      ? {
+          productId: String(initialProduct.id),
+          quantity: "",
+          unitCost: String(initialProduct.purchasePrice || 0),
+        }
+      : { productId: "", quantity: "", unitCost: "" },
+  ]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 

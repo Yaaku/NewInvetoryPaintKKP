@@ -19,11 +19,17 @@ type Batch = { id: number; batchNumber: string; quantity: number };
 export default function AdjustmentForm({
   products,
   reasons,
+  initialProductId,
 }: {
   products: ProductOpt[];
   reasons: string[];
+  initialProductId?: string;
 }) {
-  const [productId, setProductId] = useState("");
+  const [productId, setProductId] = useState<string>(
+    initialProductId && products.some((p) => String(p.id) === initialProductId)
+      ? initialProductId
+      : "",
+  );
   const [query, setQuery] = useState("");
   const [batches, setBatches] = useState<Batch[]>([]);
   const [batchId, setBatchId] = useState("");
@@ -138,7 +144,7 @@ export default function AdjustmentForm({
         />
       </Field>
       {error ? (
-        <div className="rounded border border-danger/40 bg-danger/5 px-3 py-2 text-xs text-danger">
+        <div className="rounded border border-danger-border bg-danger-bg px-3 py-2 text-xs text-danger-text">
           {error}
         </div>
       ) : null}

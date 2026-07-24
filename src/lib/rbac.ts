@@ -14,8 +14,10 @@ export type Capability =
 const ROLE_CAPS: Record<Role, Capability[]> = {
   staff: ["stock.write"],
   manager: ["stock.write", "stock.verify", "catalog.manage", "catalog.delete", "procurement.manage"],
-  admin: ["stock.write", "stock.verify", "catalog.manage", "catalog.delete", "procurement.manage", "users.manage"],
-  owner: ["stock.write", "stock.verify", "catalog.manage", "catalog.delete", "procurement.manage", "users.manage"],
+  // Transaction verification is intentionally separated from warehouse operations.
+  // Only the store manager may verify or flag stock in/out movements.
+  admin: ["stock.write", "catalog.manage", "catalog.delete", "procurement.manage", "users.manage"],
+  owner: ["stock.write", "catalog.manage", "catalog.delete", "procurement.manage", "users.manage"],
 };
 
 export const ROLE_LABELS: Record<Role, string> = {
